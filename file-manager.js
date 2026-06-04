@@ -1,26 +1,98 @@
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { execSync } = require('child_process');
 
 const PORT = 8888;
-const ROOT = '/data';
+const ROOT = path.resolve('/data');
 try { fs.mkdirSync(ROOT, { recursive: true }); } catch(e) {}
+const REAL_ROOT = fs.realpathSync(ROOT);
 
-const MIME = {'.html':'text/html;charset=utf-8','.css':'text/css','.js':'application/javascript','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.svg':'image/svg+xml','.pdf':'application/pdf','.zip':'application/zip','.txt':'text/plain;charset=utf-8','.md':'text/plain;charset=utf-8','.mp4':'video/mp4','.mp3':'audio/mpeg','.wav':'audio/wav','.ico':'image/x-icon','.webp':'image/webp','.doc':'application/msword','.docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','.xls':'application/vnd.ms-excel','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','.ppt':'application/vnd.ms-powerpoint','.pptx':'application/vnd.openxmlformats-officedocument.presentationml.presentation','.csv':'text/csv','.xml':'text/xml','.yaml':'text/plain','.yml':'text/plain','.log':'text/plain','.sh':'text/plain','.py':'text/plain','.java':'text/plain','.c':'text/plain','.cpp':'text/plain','.h':'text/plain','.go':'text/plain','.rs':'text/plain','.ts':'text/plain','.tsx':'text/plain','.jsx':'text/plain','.vue':'text/plain'};
+const MIME = {'.html':'text/html;charset=utf-8','.css':'text/css','.js':'application/javascript','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.svg':'image/svg+xml','.pdf':'application/pdf','.zip':'application/zip','.txt':'text/plain;charset=utf-8','.md':'text/plain;charset=utf-8','.mp4':'video/mp4','.webm':'video/webm','.mp3':'audio/mpeg','.wav':'audio/wav','.ico':'image/x-icon','.webp':'image/webp','.doc':'application/msword','.docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','.xls':'application/vnd.ms-excel','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','.ppt':'application/vnd.ms-powerpoint','.pptx':'application/vnd.openxmlformats-officedocument.presentationml.presentation','.csv':'text/csv;charset=utf-8','.xml':'text/xml','.yaml':'text/plain','.yml':'text/plain','.log':'text/plain','.sh':'text/plain','.py':'text/plain','.java':'text/plain','.c':'text/plain','.cpp':'text/plain','.h':'text/plain','.go':'text/plain','.rs':'text/plain','.ts':'text/plain','.tsx':'text/plain','.jsx':'text/plain','.vue':'text/plain'};
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
+function isInside(base, target){
+  const rel = path.relative(base, target);
+  return rel === '' || (!!rel && !rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+function safeDecodeURIComponent(value){
+  if(typeof value !== 'string') return null;
+  try{ return decodeURIComponent(value); }
+  catch(e){ return null; }
+}
+
 function safePath(rp){
-  const fp = path.join(ROOT, rp).replace(/\\/g, '/');
-  if(!fp.startsWith(ROOT)) return null;
+  if(typeof rp !== 'string') return null;
+  const normalized = rp.replace(/\\/g, '/');
+  const requestPath = normalized.startsWith('/') ? normalized : '/' + normalized;
+  const fp = path.resolve(ROOT, '.' + requestPath);
+  if(!isInside(ROOT, fp)) return null;
   return fp;
+}
+
+function pathExists(fp){
+  try{ fs.lstatSync(fp); return true; }
+  catch(e){
+    if(e && e.code === 'ENOENT') return false;
+    throw e;
+  }
+}
+
+function realPathInsideRoot(fp){
+  try{ return isInside(REAL_ROOT, fs.realpathSync(fp)); }
+  catch(e){ return false; }
+}
+
+function ensureSafeDirectory(fp){
+  if(!fp || !isInside(ROOT, fp)) return false;
+  try{
+    const st = fs.statSync(fp);
+    return st.isDirectory() && realPathInsideRoot(fp);
+  }catch(e){
+    return false;
+  }
+}
+
+function safeName(name){
+  if(typeof name !== 'string') return null;
+  if(name.length === 0 || name === '.' || name === '..') return null;
+  if(name.includes('/') || name.includes('\\') || name.includes('\0')) return null;
+  return name;
+}
+
+function safeChildPath(dir, name){
+  const cleanName = safeName(name);
+  if(!cleanName) return null;
+  const fp = path.join(dir, cleanName);
+  return isInside(ROOT, fp) ? fp : null;
+}
+
+function safeUploadedFilename(rawName){
+  if(typeof rawName !== 'string') return null;
+  const basename = rawName.replace(/\\/g, '/').split('/').pop();
+  return safeName(basename);
+}
+
+function getSafePathParam(value){
+  const decoded = safeDecodeURIComponent(value);
+  return decoded === null ? null : safePath(decoded);
+}
+
+function attachmentDisposition(filename){
+  const asciiName = filename.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+  return "attachment; filename=\""+asciiName+"\"; filename*=UTF-8''"+encodeURIComponent(filename);
+}
+
+function itemHref(name, isDir){
+  return encodeURIComponent(name) + (isDir ? '/' : '');
 }
 
 function formatSize(bytes){
   if(bytes===0) return '0 B';
   const k=1024,sizes=['B','KB','MB','GB','TB'];
-  const i=Math.floor(Math.log(bytes)/Math.log(k));
+  const i=Math.min(Math.floor(Math.log(bytes)/Math.log(k)), sizes.length - 1);
   return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i];
 }
 
@@ -81,21 +153,23 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs){
 
   const breadcrumbs = rp.split('/').filter(Boolean);
   let breadcrumbHtml = '<a href="/" class="breadcrumb-item">🏠 根目录</a>';
-  let cumPath = '/';
+  const cumParts = [];
   for(const b of breadcrumbs){
-    cumPath += b + '/';
-    breadcrumbHtml += '<span class="breadcrumb-sep">/</span><a href="'+encodeURI(cumPath)+'" class="breadcrumb-item">'+esc(decodeURIComponent(b))+'</a>';
+    cumParts.push(b);
+    const href = '/' + cumParts.map(encodeURIComponent).join('/') + '/';
+    breadcrumbHtml += '<span class="breadcrumb-sep">/</span><a href="'+href+'" class="breadcrumb-item">'+esc(b)+'</a>';
   }
 
   const msgHtml = msg ? '<div class="msg '+msg.type+'">'+esc(msg.text)+'</div>' : '';
 
   const listHtml = list.map(i=>{
-    const href = i.isDir ? encodeURI(i.name+'/') : encodeURI(i.name);
+    const href = itemHref(i.name, i.isDir);
     const icon = getIcon(i.name, i.isDir);
     const size = i.isDir ? '-' : formatSize(i.size);
     const mtime = i.mtime ? new Date(i.mtime).toLocaleString('zh-CN') : '-';
-    const dlBtn = i.isDir ? '' : '<a href="'+encodeURI(i.name)+'?download=1" class="btn btn-sm" title="下载">⬇️</a>';
-    const previewBtn = i.isDir ? '' : '<a href="'+encodeURI(i.name)+'" class="btn btn-sm" title="预览" target="_blank">👁️</a>';
+    const encodedName = encodeURIComponent(i.name);
+    const dlBtn = i.isDir ? '' : '<a href="'+encodedName+'?download=1" class="btn btn-sm" title="下载">⬇️</a>';
+    const previewBtn = i.isDir ? '' : '<button class="btn btn-sm act-btn" data-act="preview" data-name="'+esc(i.name)+'" title="预览">👁️</button>';
     const dn = esc(i.name);
     return '<tr class="file-row" data-name="'+dn+'">'+
       '<td class="col-check"><input type="checkbox" class="row-cb" data-name="'+dn+'"></td>'+
@@ -238,7 +312,7 @@ tr.selected{background:#f0f0ff!important}
     <button class="btn btn-primary" onclick="showUpload()">📤 上传文件</button>
     <button class="btn" onclick="showNewFolder()">📁 新建文件夹</button>
     <button class="btn" onclick="location.reload()">🔄 刷新</button>
-    <a href="${rp}?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle${groupDirs?' active':''}" title="切换目录优先显示">📁 目录优先</a>
+    <a href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle${groupDirs?' active':''}" title="切换目录优先显示">📁 目录优先</a>
     <span id="toolbarPaste"></span>
   </div>
   <div id="batchBar"></div>
@@ -328,6 +402,7 @@ document.addEventListener('click', function(e){
   const act = btn.dataset.act;
   const name = btn.dataset.name;
   if(act === 'rename') showRename(name);
+  else if(act === 'preview') previewFile(name);
   else if(act === 'move') setClipboard(name, 'move');
   else if(act === 'copy') setClipboard(name, 'copy');
   else if(act === 'delete') deleteItem(name);
@@ -337,10 +412,16 @@ document.addEventListener('click', function(e){
   else if(act === 'batch-move') batchMove();
   else if(act === 'batch-copy') batchCopy();
   else if(act === 'batch-download') batchDownload();
+  else if(act === 'batch-clear') clearSelection();
 });
 
 // Multi-select & batch operations
 var selectedItems = new Set();
+
+function clearSelection(){
+  selectedItems.clear();
+  refreshSelection();
+}
 
 function updateBatchBar(){
   var bar = document.getElementById('batchBar');
@@ -403,16 +484,6 @@ document.addEventListener('change', function(e){
   }
 });
 
-// Batch clear (event delegation)
-document.addEventListener('click', function(e){
-  var btn = e.target.closest('.act-btn');
-  if(!btn) return;
-  if(btn.dataset.act === 'batch-clear'){
-    selectedItems.clear();
-    refreshSelection();
-  }
-});
-
 async function batchDownload(){
   var names = Array.from(selectedItems);
   if(!names.length) return;
@@ -425,6 +496,7 @@ async function batchDownload(){
     var a = document.createElement('a');
     a.href = url;
     var dirName = currentPath.replace(/[/]$/,'').split('/').pop() || 'files';
+    try{ dirName = decodeURIComponent(dirName) || 'files'; }catch(e){}
     a.download = dirName + '.zip';
     document.body.appendChild(a);
     a.click();
@@ -484,8 +556,8 @@ fileInput.addEventListener('change',e=>{handleFiles(e.target.files)});
 
 function formatSize(bytes){
   if(bytes===0) return '0 B';
-  const k=1024,sizes=['B','KB','MB','GB'];
-  const i=Math.floor(Math.log(bytes)/Math.log(k));
+  const k=1024,sizes=['B','KB','MB','GB','TB'];
+  const i=Math.min(Math.floor(Math.log(bytes)/Math.log(k)), sizes.length - 1);
   return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i];
 }
 
@@ -496,7 +568,10 @@ function uploadFile(file, onProgress){
     xhr.upload.onprogress = function(e){
       if(e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
     };
-    xhr.onload = function(){ resolve(xhr.status); };
+    xhr.onload = function(){
+      if(xhr.status >= 200 && xhr.status < 300) resolve(xhr.status);
+      else reject(new Error(xhr.responseText || '上传失败'));
+    };
     xhr.onerror = function(){ reject(new Error('网络错误')); };
     var fd = new FormData();
     fd.append('file', file);
@@ -517,16 +592,17 @@ async function handleFiles(files){
     var file = files[i];
     var idx = i+1;
     text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name;
-    bar.style.width = Math.round(uploadedSize/totalSize*100)+'%';
+    bar.style.width = (totalSize ? Math.round(uploadedSize/totalSize*100) : Math.round(i/files.length*100))+'%';
     try{
       await uploadFile(file, function(loaded, total){
-        var pct = Math.round((uploadedSize + loaded) / totalSize * 100);
+        var pct = totalSize ? Math.round((uploadedSize + loaded) / totalSize * 100) : Math.round(idx/files.length*100);
         bar.style.width = pct + '%';
         text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name + '  ' + formatSize(loaded) + '/' + formatSize(total);
       });
       uploadedSize += file.size;
+      if(!totalSize) bar.style.width = Math.round(idx/files.length*100)+'%';
     }catch(e){
-      text.textContent = '上传失败: ' + file.name;
+      text.textContent = '上传失败: ' + file.name + (e.message ? ' (' + e.message + ')' : '');
       return;
     }
   }
@@ -555,8 +631,9 @@ async function deleteItem(name){
 }
 
 async function previewFile(name){
-  const ext = name.split('.').pop().toLowerCase();
-  const url = encodeURI(currentPath + name);
+  const dot = name.lastIndexOf('.');
+  const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
+  const url = currentPath + encodeURIComponent(name);
   const overlay = document.getElementById('previewOverlay');
   const content = document.getElementById('previewContent');
   const nameEl = document.getElementById('previewName');
@@ -564,7 +641,7 @@ async function previewFile(name){
   content.innerHTML = '';
 
   if(['jpg','jpeg','png','gif','webp','svg','bmp','ico'].includes(ext)){
-    content.innerHTML = '<img src="'+url+'" alt="'+name+'">';
+    content.innerHTML = '<img src="'+url+'" alt="'+esc(name)+'">';
   } else if(['mp4','webm'].includes(ext)){
     content.innerHTML = '<video src="'+url+'" controls autoplay style="max-width:90%;max-height:80vh"></video>';
   } else if(['mp3','wav','ogg','aac','flac'].includes(ext)){
@@ -616,7 +693,6 @@ function setClipboard(name, action){
   sessionStorage.setItem('clip_name', name);
   sessionStorage.setItem('clip_action', action);
   sessionStorage.setItem('clip_src', currentPath + encodeURIComponent(name));
-  console.log('Clipboard set:', name, action, 'src:', currentPath + encodeURIComponent(name));
   const label = action === 'move' ? '已剪切' : '已复制';
   showToast(label + ' ' + name + '，请在目标位置粘贴', 'info');
   renderClipboard();
@@ -630,7 +706,6 @@ function clearClipboard(){
 function renderClipboard(){
   var name = sessionStorage.getItem('clip_name');
   var action = sessionStorage.getItem('clip_action');
-  console.log('renderClipboard:', name, action);
   var bar = document.getElementById('clipboardBar');
   var toolbar = document.getElementById('toolbarPaste');
   if(!name || !action){
@@ -646,7 +721,10 @@ function renderClipboard(){
   var isBatch = name.startsWith('[');
   var display;
   if(isBatch){
-    var arr = JSON.parse(name);
+    var arr;
+    try{ arr = JSON.parse(name); }
+    catch(e){ clearClipboard(); return; }
+    if(!Array.isArray(arr)){ clearClipboard(); return; }
     display = icon+' 已'+label+' <b>'+arr.length+'</b> 项';
   } else {
     display = icon+' 已'+label+' <b>'+esc(name)+'</b>';
@@ -699,7 +777,10 @@ async function doPaste(){
   }
   // Check if batch
   if(name.startsWith('[')){
-    const names = JSON.parse(name);
+    let names;
+    try{ names = JSON.parse(name); }
+    catch(e){ clearClipboard(); showToast('剪贴板数据无效', 'info'); return; }
+    if(!Array.isArray(names)){ clearClipboard(); showToast('剪贴板数据无效', 'info'); return; }
     var ok=0, skip=0, fail=0;
     for(var i=0;i<names.length;i++){
       const n = names[i];
@@ -737,20 +818,29 @@ try{ renderClipboard(); }catch(e){}
 }
 
 function copyRecursiveSync(src, dest){
-  const st = fs.statSync(src);
+  const st = fs.lstatSync(src);
+  if(st.isSymbolicLink()){
+    throw new Error('不支持复制符号链接');
+  }
   if(st.isDirectory()){
+    if(isInside(path.resolve(src), path.resolve(dest))){
+      throw new Error('不能将目录复制到自身或子目录');
+    }
     fs.mkdirSync(dest, {recursive:true});
     for(const entry of fs.readdirSync(src)){
       copyRecursiveSync(path.join(src, entry), path.join(dest, entry));
     }
-  } else {
+  } else if(st.isFile()) {
     fs.copyFileSync(src, dest);
+  } else {
+    throw new Error('不支持复制该类型文件');
   }
 }
 
 function handle(req, res){
   const url = new URL(req.url, 'http://localhost');
-  let rp = decodeURIComponent(url.pathname);
+  let rp = safeDecodeURIComponent(url.pathname);
+  if(rp === null){ res.writeHead(400); res.end('Invalid path'); return; }
   if(!rp.startsWith('/')) rp = '/' + rp;
 
   const fp = safePath(rp);
@@ -759,10 +849,16 @@ function handle(req, res){
   // POST actions
   if(req.method === 'POST'){
     const action = url.searchParams.get('action');
+    if(!ensureSafeDirectory(fp)){
+      res.writeHead(400);
+      res.end('Invalid directory');
+      return;
+    }
 
     if(action === 'upload'){
       const contentType = req.headers['content-type'] || '';
-      const boundary = contentType.split('boundary=')[1];
+      const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+      const boundary = boundaryMatch && (boundaryMatch[1] || boundaryMatch[2]);
       if(!boundary){ res.writeHead(400); res.end('Bad request'); return; }
 
       let body = [];
@@ -783,14 +879,18 @@ function handle(req, res){
             const header = buf.slice(headerStart, headerEnd).toString('utf8');
             const filenameMatch = header.match(/filename="([^"]+)"/);
             if(filenameMatch){
-              const filename = filenameMatch[1];
+              const filename = safeUploadedFilename(filenameMatch[1]);
+              if(!filename){
+                res.writeHead(400);
+                res.end('Invalid filename');
+                return;
+              }
               const contentStart = headerEnd + 4;
               const nextBoundary = buf.indexOf(delimiter, contentStart);
               if(nextBoundary < 0) break;
-              const destPath = path.join(fp, filename);
-              if(destPath.startsWith(ROOT)){
-                fs.writeFileSync(destPath, buf.slice(contentStart, nextBoundary));
-              }
+              const destPath = safeChildPath(fp, filename);
+              if(!destPath){ res.writeHead(400); res.end('Invalid filename'); return; }
+              fs.writeFileSync(destPath, buf.slice(contentStart, nextBoundary));
               pos = nextBoundary + delimiter.length;
             } else {
               const nextBoundary = buf.indexOf(delimiter, headerEnd + 4);
@@ -809,10 +909,10 @@ function handle(req, res){
     }
 
     if(action === 'mkdir'){
-      const name = url.searchParams.get('name');
+      const name = safeName(url.searchParams.get('name'));
       if(!name){ res.writeHead(400); res.end('Missing name'); return; }
-      const newDir = path.join(fp, name);
-      if(!newDir.startsWith(ROOT)){ res.writeHead(403); res.end('Forbidden'); return; }
+      const newDir = safeChildPath(fp, name);
+      if(!newDir){ res.writeHead(400); res.end('Invalid name'); return; }
       try{
         fs.mkdirSync(newDir, {recursive:true});
         res.writeHead(200); res.end('OK');
@@ -823,15 +923,19 @@ function handle(req, res){
     }
 
     if(action === 'delete'){
-      const name = url.searchParams.get('name');
+      const name = safeName(url.searchParams.get('name'));
       if(!name){ res.writeHead(400); res.end('Missing name'); return; }
-      const target = path.join(fp, name);
-      if(!target.startsWith(ROOT)){ res.writeHead(400); res.end('Invalid path'); return; }
+      const target = safeChildPath(fp, name);
+      if(!target){ res.writeHead(400); res.end('Invalid path'); return; }
       try{
-        const st = fs.statSync(target);
-        if(st.isDirectory()){
+        const st = fs.lstatSync(target);
+        if(st.isSymbolicLink()){
+          fs.unlinkSync(target);
+        } else if(st.isDirectory()){
+          if(!realPathInsideRoot(target)){ res.writeHead(403); res.end('Forbidden'); return; }
           fs.rmSync(target, {recursive:true, force:true});
         } else {
+          if(!realPathInsideRoot(target)){ res.writeHead(403); res.end('Forbidden'); return; }
           fs.unlinkSync(target);
         }
         res.writeHead(200); res.end('OK');
@@ -842,13 +946,13 @@ function handle(req, res){
     }
 
     if(action === 'rename'){
-      const name = url.searchParams.get('name');
-      const newName = url.searchParams.get('newname');
+      const name = safeName(url.searchParams.get('name'));
+      const newName = safeName(url.searchParams.get('newname'));
       if(!name || !newName){ res.writeHead(400); res.end('Missing parameters'); return; }
-      const src = path.join(fp, name);
-      const dest = path.join(fp, newName);
-      if(!src.startsWith(ROOT) || !dest.startsWith(ROOT)){ res.writeHead(400); res.end('Invalid path'); return; }
-      if(fs.existsSync(dest)){ res.writeHead(409); res.end('目标已存在同名文件或文件夹'); return; }
+      const src = safeChildPath(fp, name);
+      const dest = safeChildPath(fp, newName);
+      if(!src || !dest){ res.writeHead(400); res.end('Invalid path'); return; }
+      if(pathExists(dest)){ res.writeHead(409); res.end('目标已存在同名文件或文件夹'); return; }
       try{
         fs.renameSync(src, dest);
         res.writeHead(200); res.end('OK');
@@ -859,19 +963,22 @@ function handle(req, res){
     }
 
     if(action === 'move'){
-      const name = url.searchParams.get('name');
+      const name = safeName(url.searchParams.get('name'));
       const destDir = url.searchParams.get('dest');
       const srcParam = url.searchParams.get('src');
       if(!name || !destDir){ res.writeHead(400); res.end('Missing parameters'); return; }
-      const src = srcParam ? safePath(decodeURIComponent(srcParam)) : path.join(fp, name);
-      const destFolder = safePath(decodeURIComponent(destDir));
-      if(!src || !src.startsWith(ROOT) || !destFolder){ res.writeHead(400); res.end('Invalid path'); return; }
-      const dest = path.join(destFolder, name);
-      if(!dest.startsWith(ROOT)){ res.writeHead(400); res.end('Invalid path'); return; }
+      const src = srcParam ? getSafePathParam(srcParam) : safeChildPath(fp, name);
+      const destFolder = getSafePathParam(destDir);
+      if(!src || !destFolder || !ensureSafeDirectory(path.dirname(src)) || !ensureSafeDirectory(destFolder)){ res.writeHead(400); res.end('Invalid path'); return; }
+      const dest = safeChildPath(destFolder, name);
+      if(!dest){ res.writeHead(400); res.end('Invalid path'); return; }
       if(src === dest){ res.writeHead(200); res.end('OK'); return; }
-      if(fs.existsSync(dest)){ res.writeHead(409); res.end('目标目录已存在同名文件或文件夹'); return; }
+      if(pathExists(dest)){ res.writeHead(409); res.end('目标目录已存在同名文件或文件夹'); return; }
       try{
-        fs.mkdirSync(destFolder, {recursive:true});
+        const srcStat = fs.lstatSync(src);
+        if(srcStat.isDirectory() && isInside(path.resolve(src), path.resolve(dest))){
+          res.writeHead(400); res.end('不能将目录移动到自身或子目录'); return;
+        }
         fs.renameSync(src, dest);
         res.writeHead(200); res.end('OK');
       }catch(e){
@@ -881,19 +988,18 @@ function handle(req, res){
     }
 
     if(action === 'copy'){
-      const name = url.searchParams.get('name');
+      const name = safeName(url.searchParams.get('name'));
       const destDir = url.searchParams.get('dest');
       const srcParam = url.searchParams.get('src');
       if(!name || !destDir){ res.writeHead(400); res.end('Missing parameters'); return; }
-      const src = srcParam ? safePath(decodeURIComponent(srcParam)) : path.join(fp, name);
-      const destFolder = safePath(decodeURIComponent(destDir));
-      if(!src || !src.startsWith(ROOT) || !destFolder){ res.writeHead(400); res.end('Invalid path'); return; }
-      const dest = path.join(destFolder, name);
-      if(!dest.startsWith(ROOT)){ res.writeHead(400); res.end('Invalid path'); return; }
+      const src = srcParam ? getSafePathParam(srcParam) : safeChildPath(fp, name);
+      const destFolder = getSafePathParam(destDir);
+      if(!src || !destFolder || !ensureSafeDirectory(path.dirname(src)) || !ensureSafeDirectory(destFolder)){ res.writeHead(400); res.end('Invalid path'); return; }
+      const dest = safeChildPath(destFolder, name);
+      if(!dest){ res.writeHead(400); res.end('Invalid path'); return; }
       if(src === dest){ res.writeHead(200); res.end('OK'); return; }
-      if(fs.existsSync(dest)){ res.writeHead(409); res.end('目标目录已存在同名文件或文件夹'); return; }
+      if(pathExists(dest)){ res.writeHead(409); res.end('目标目录已存在同名文件或文件夹'); return; }
       try{
-        fs.mkdirSync(destFolder, {recursive:true});
         copyRecursiveSync(src, dest);
         res.writeHead(200); res.end('OK');
       }catch(e){
@@ -906,56 +1012,59 @@ function handle(req, res){
       let names = [];
       try{ names = JSON.parse(url.searchParams.get('names')||'[]'); }catch(e){}
       if(!Array.isArray(names)||names.length===0){ res.writeHead(400); res.end('Missing names'); return; }
-      const tmpDir = path.join(ROOT, '.tmp_zip_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+      names = names.map(safeName);
+      if(names.some(name => !name)){ res.writeHead(400); res.end('Invalid names'); return; }
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'winfm-zip-'));
+      const zipPath = tmpDir + '.zip';
+      function cleanupZipTemp(){
+        try{ fs.unlinkSync(zipPath); }catch(e){}
+        try{ fs.rmSync(tmpDir, {recursive:true,force:true}); }catch(e){}
+      }
       try{
-        fs.mkdirSync(tmpDir, {recursive:true});
         for(const name of names){
-          const src = path.join(fp, name);
-          if(!src.startsWith(ROOT)) continue;
+          const src = safeChildPath(fp, name);
+          if(!src || !pathExists(src)) continue;
+          const srcStat = fs.lstatSync(src);
+          if(!realPathInsideRoot(src)) continue;
           const dest = path.join(tmpDir, name);
           try{
-            const st = fs.statSync(src);
-            if(st.isDirectory()) copyRecursiveSync(src, dest);
+            if(srcStat.isDirectory()) copyRecursiveSync(src, dest);
             else fs.copyFileSync(src, dest);
           }catch(e){}
         }
         const dirName = rp === '/' ? 'files' : path.basename(rp.replace(/[/]$/,''));
         const zipName = dirName + '.zip';
-        const zipPath = tmpDir + '.zip';
-        const asciiName = zipName.replace(/[^\x20-\x7e]/g, '_');
-        const encodedName = encodeURIComponent(zipName);
         const { spawn } = require('child_process');
         const zipProc = spawn('zip', ['-r', zipPath, '.'], {cwd: tmpDir, stdio:['ignore','pipe','pipe']});
         zipProc.on('close', function(code){
           try{
-            if(code !== 0 || !fs.existsSync(zipPath)){
+            if(code !== 0 || !pathExists(zipPath)){
               res.writeHead(500); res.end('Zip failed');
-              try{ fs.rmSync(tmpDir, {recursive:true,force:true}); }catch(e){}
+              cleanupZipTemp();
               return;
             }
             const zipStat = fs.statSync(zipPath);
             res.writeHead(200,{
               'Content-Type':'application/zip',
-              'Content-Disposition':"attachment; filename=\""+asciiName+"\"; filename*=UTF-8''"+encodedName,
+              'Content-Disposition':attachmentDisposition(zipName),
               'Content-Length':zipStat.size
             });
             const stream = fs.createReadStream(zipPath);
             stream.pipe(res);
             stream.on('close', function(){
-              try{ fs.unlinkSync(zipPath); }catch(e){}
-              try{ fs.rmSync(tmpDir, {recursive:true,force:true}); }catch(e){}
+              cleanupZipTemp();
             });
           }catch(e){
-            try{ fs.rmSync(tmpDir, {recursive:true,force:true}); }catch(ex){}
+            cleanupZipTemp();
             try{ res.writeHead(500); res.end('Error: '+e.message); }catch(ex){}
           }
         });
         zipProc.on('error', function(e){
-          try{ fs.rmSync(tmpDir, {recursive:true,force:true}); }catch(ex){}
+          cleanupZipTemp();
           try{ res.writeHead(500); res.end('Zip error: '+e.message); }catch(ex){}
         });
       }catch(e){
-        try{ fs.rmSync(tmpDir, {recursive:true,force:true}); }catch(ex){}
+        cleanupZipTemp();
         res.writeHead(500); res.end('Zip error: '+e.message);
       }
       return;
@@ -963,8 +1072,8 @@ function handle(req, res){
 
     if(action === 'listdirs'){
       const targetDir = url.searchParams.get('dir') || '/';
-      const targetFp = safePath(targetDir);
-      if(!targetFp){ res.writeHead(400); res.end('Invalid path'); return; }
+      const targetFp = getSafePathParam(targetDir);
+      if(!targetFp || !ensureSafeDirectory(targetFp)){ res.writeHead(400); res.end('Invalid path'); return; }
       try{
         const entries = fs.readdirSync(targetFp, {withFileTypes:true})
           .filter(e => e.isDirectory())
@@ -983,9 +1092,15 @@ function handle(req, res){
   }
 
   // GET
-  if(!fs.existsSync(fp)){
+  if(!pathExists(fp)){
     res.writeHead(404);
     res.end('<h1>404 Not Found</h1>');
+    return;
+  }
+
+  if(!realPathInsideRoot(fp)){
+    res.writeHead(403);
+    res.end('Forbidden');
     return;
   }
 
@@ -999,13 +1114,14 @@ function handle(req, res){
       items = fs.readdirSync(fp, {withFileTypes:true}).map(e=>{
         const itemPath = path.join(fp, e.name);
         let size=0, mtime=null;
-        try{ const s=fs.statSync(itemPath); size=s.size; mtime=s.mtime; }catch(ex){}
+        try{ const s=fs.lstatSync(itemPath); size=s.size; mtime=s.mtime; }catch(ex){}
         return {name:e.name, isDir:e.isDirectory(), size, mtime};
       });
     }catch(e){}
 
-    const sortField = url.searchParams.get('sort') || 'name';
-    const sortDir = url.searchParams.get('dir') || 'asc';
+    let sortField = url.searchParams.get('sort') || 'name';
+    if(!['name','size','mtime'].includes(sortField)) sortField = 'name';
+    const sortDir = url.searchParams.get('dir') === 'desc' ? 'desc' : 'asc';
     const groupDirs = url.searchParams.get('group') !== '0';
 
     items.sort((a,b)=>{
@@ -1033,11 +1149,9 @@ function handle(req, res){
 
   if(download){
     const dlName = path.basename(fp);
-    const asciiName = dlName.replace(/[^\x20-\x7e]/g, '_');
-    const encodedName = encodeURIComponent(dlName);
     res.writeHead(200,{
       'Content-Type':'application/octet-stream',
-      'Content-Disposition':"attachment; filename=\""+asciiName+"\"; filename*=UTF-8''"+encodedName,
+      'Content-Disposition':attachmentDisposition(dlName),
       'Content-Length':st.size
     });
     fs.createReadStream(fp).pipe(res);
