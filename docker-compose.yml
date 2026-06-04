@@ -1,0 +1,9 @@
+services:
+  file-manager:
+    build: .
+    container_name: file-manager
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      - D:/fileshare:/data
