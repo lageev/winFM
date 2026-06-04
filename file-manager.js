@@ -290,7 +290,6 @@ button,input,a{font:inherit}
 .msg.error{background:var(--danger-soft);border-color:var(--danger);border-color:color-mix(in srgb,var(--danger) 36%,var(--line));color:var(--danger)}
 .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;backdrop-filter:saturate(145%) blur(12px)}
 table{width:100%;border-collapse:separate;border-spacing:0}
-thead{position:sticky;top:64px;z-index:10}
 th{background:var(--surface-strong);border-bottom:1px solid var(--line);padding:11px 14px;text-align:left;font-weight:650;font-size:12px;color:var(--muted);text-transform:none;letter-spacing:0}
 td{padding:9px 14px;border-bottom:1px solid var(--line-soft);font-size:13px;vertical-align:middle}
 tr:last-child td{border-bottom:none}
@@ -367,7 +366,6 @@ tr.selected{background:var(--accent-soft)!important}
   .toolbar{gap:6px;padding:6px}
   .toolbar .btn,.group-toggle{min-height:34px;padding:7px 10px;font-size:12px}
   table{table-layout:fixed}
-  thead{top:132px}
   th,td{padding:8px 6px;font-size:12px}
   .col-size,.col-time{display:none}
   .col-icon{width:32px}
