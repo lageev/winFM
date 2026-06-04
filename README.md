@@ -1,6 +1,6 @@
 # winFM
 
-基于 Docker 的轻量级 Web 文件管理器，单文件 Node.js 实现，无外部依赖。
+基于 Docker 的轻量级 Web 文件管理器，单文件 Node.js 实现，前端通过 CDN 使用 DaisyUI、Tailwind CSS 和 Lucide。
 
 ## 功能
 
@@ -38,5 +38,6 @@ volumes:
 ## 技术栈
 
 - **运行时**: Node.js 20 (Alpine)
-- **依赖**: 无（纯标准库实现）
+- **后端依赖**: 无（Node.js 标准库实现）
+- **前端 UI**: DaisyUI 5、Tailwind CSS Play CDN、Lucide Icons（CDN）
 - **打包**: zip（容器内预装）
