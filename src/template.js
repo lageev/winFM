@@ -311,6 +311,69 @@ md-outlined-text-field{width:100%}
 .batch-bar md-outlined-button{--md-outlined-button-label-text-color:var(--md-sys-color-on-primary-container);--md-outlined-button-outline-color:color-mix(in srgb,var(--md-sys-color-on-primary-container) 40%,transparent)}
 .batch-bar md-filled-tonal-button{--md-filled-tonal-button-container-color:var(--md-sys-color-surface);--md-filled-tonal-button-label-text-color:var(--md-sys-color-on-surface);--md-filled-tonal-button-icon-color:var(--md-sys-color-on-surface)}
 
+/* Sidebar layout */
+.app-layout{display:flex;min-height:calc(100vh - 64px)}
+.sidebar{width:260px;min-width:260px;max-width:260px;background:var(--md-sys-color-surface-container-low);border-right:1px solid var(--md-sys-color-outline-variant);display:flex;flex-direction:column;overflow:hidden;position:sticky;top:64px;height:calc(100vh - 64px);z-index:40;flex-shrink:0;transition:width .2s,min-width .2s,max-width .2s}
+.sidebar.collapsed{width:0;min-width:0;max-width:0;border-right:0}
+.sidebar-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding:0}
+.sidebar-header{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.sidebar-header-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);flex-shrink:0}
+.sidebar-header-icon md-icon{font-size:18px}
+.sidebar-header-text{font-size:14px;font-weight:500;color:var(--md-sys-color-on-surface);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-collapse{flex-shrink:0}
+.sidebar-collapse md-icon{font-size:20px;color:var(--md-sys-color-on-surface-variant)}
+.sidebar-section{padding:6px 0}
+.sidebar-title{display:flex;align-items:center;gap:8px;padding:10px 16px 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)}
+.sidebar-title md-icon{font-size:16px}
+.sidebar-divider{height:1px;background:var(--md-sys-color-outline-variant);margin:2px 12px}
+
+/* Bookmarks */
+.bookmark-list{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.bookmark-item{display:flex;align-items:center;gap:10px;padding:6px 12px;font-size:13px;color:var(--md-sys-color-on-surface);text-decoration:none;cursor:pointer;transition:background .12s;border-radius:8px;position:relative}
+.bookmark-item:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.bookmark-item.active{background:color-mix(in srgb,var(--md-sys-color-primary) 10%,transparent);color:var(--md-sys-color-primary);font-weight:500}
+.bookmark-item md-icon{font-size:18px;color:var(--md-sys-color-on-surface-variant);flex-shrink:0}
+.bookmark-item.active md-icon{color:var(--md-sys-color-primary)}
+.bookmark-item .bm-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bookmark-item .bm-remove{display:none;flex-shrink:0;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;color:var(--md-sys-color-on-surface-variant);cursor:pointer;transition:background .12s}
+.bookmark-item .bm-remove md-icon{font-size:14px}
+.bookmark-item:hover .bm-remove{display:inline-flex}
+.bookmark-item .bm-remove:hover{background:color-mix(in srgb,var(--md-sys-color-error) 15%,transparent);color:var(--md-sys-color-error)}
+.bookmark-add{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:2px 8px;font-size:12px;color:var(--md-sys-color-primary);cursor:pointer;opacity:.65;transition:opacity .12s,border-radius .12s;border-radius:10px}
+.bookmark-add:hover{opacity:1;background:color-mix(in srgb,var(--md-sys-color-primary) 8%,transparent)}
+.bookmark-add md-icon{font-size:16px}
+
+/* Directory tree */
+.tree-container{padding:0 4px}
+.tree-node{user-select:none}
+.tree-row{display:flex;align-items:center;gap:1px;padding:1px 8px 1px 0;font-size:13px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .1s;border-radius:3px;text-decoration:none;white-space:nowrap;margin:0;line-height:22px;width:fit-content}
+.tree-row:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+.tree-row.active{background:color-mix(in srgb,var(--md-sys-color-primary) 10%,transparent);color:var(--md-sys-color-primary);font-weight:500}
+.tree-row.active .tree-icon md-icon{color:var(--md-sys-color-primary)}
+.tree-chevron{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--md-sys-color-outline);transition:transform .15s}
+.tree-chevron:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 10%,transparent)}
+.tree-chevron md-icon{font-size:13px}
+.tree-chevron.expanded{transform:rotate(90deg)}
+.tree-chevron.empty{visibility:hidden}
+.tree-icon{flex-shrink:0;display:inline-flex;align-items:center}
+.tree-icon md-icon{font-size:15px;color:var(--md-sys-color-primary)}
+.tree-label{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tree-children{display:none;padding-left:8px}
+.tree-children.open{display:block}
+
+/* Sidebar toggle (desktop) */
+.sidebar-toggle-desktop{display:inline-flex;flex-shrink:0}
+.sidebar-toggle-desktop md-icon{font-size:22px;color:var(--md-sys-color-on-surface-variant)}
+.sidebar-toggle-desktop:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
+
+/* Main content */
+.main-content{flex:1;min-width:0;overflow-x:hidden}
+
+/* Mobile sidebar toggle */
+.sidebar-toggle-mobile{display:none}
+.sidebar-overlay{display:none;position:fixed;inset:0;z-index:35;background:color-mix(in srgb,var(--md-sys-color-scrim) 50%,transparent);opacity:0;transition:opacity .2s;pointer-events:none}
+.sidebar-overlay.show{opacity:1;pointer-events:auto}
+
 @media(max-width:860px){
   .app-bar{padding:10px 16px;gap:10px}
   .app-bar-main{flex-direction:column;align-items:flex-start;gap:10px;width:100%}
@@ -323,12 +386,21 @@ md-outlined-text-field{width:100%}
   .col-check{width:40px}
   .file-actions{gap:0}
   .material-dialog{min-width:calc(100vw - 24px)}
+  .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:40;transform:translateX(-100%);transition:transform .25s ease,width 0s .25s,min-width 0s .25s,max-width 0s .25s;box-shadow:4px 0 20px rgba(0,0,0,.15);width:280px;min-width:280px;max-width:280px}
+  .sidebar.collapsed{width:280px;min-width:280px;max-width:280px}
+  .sidebar.open{transform:translateX(0);transition:transform .25s ease}
+  .sidebar-toggle-mobile{display:inline-flex}
+  .sidebar-toggle-desktop{display:none}
+  .sidebar-overlay{display:block}
 }
 </style>
 </head>
 <body>
 <div id="toast" class="toast"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
 <div class="app-bar">
+  <md-icon-button class="sidebar-toggle-mobile" onclick="toggleSidebar()" aria-label="切换侧栏"><md-icon>menu</md-icon></md-icon-button>
+  <md-icon-button class="sidebar-toggle-desktop" onclick="toggleSidebarCollapse()" aria-label="切换侧栏" title="切换侧栏"><md-icon>menu</md-icon></md-icon-button>
   <div class="app-bar-main">
     <div class="brand">
       <div class="brand-mark" aria-hidden="true"><md-icon>folder_open</md-icon></div>
@@ -341,6 +413,27 @@ md-outlined-text-field{width:100%}
   </div>
   ${statsHtml}
 </div>
+<div class="app-layout">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-inner">
+    <div class="sidebar-header">
+      <div class="sidebar-header-icon"><md-icon>folder_open</md-icon></div>
+      <div class="sidebar-header-text">文件管理</div>
+      <md-icon-button class="sidebar-collapse" onclick="toggleSidebarCollapse()" aria-label="收起侧栏" title="收起侧栏"><md-icon>chevron_left</md-icon></md-icon-button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title"><md-icon>bookmark</md-icon> 常用目录</div>
+      <div class="bookmark-list" id="bookmarkList"></div>
+      <div class="bookmark-add" onclick="addBookmark()" title="将当前目录添加到常用"><md-icon>add</md-icon>添加当前目录</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section sidebar-tree-section">
+      <div class="sidebar-title"><md-icon>account_tree</md-icon> 目录结构</div>
+      <div class="tree-container" id="dirTree"></div>
+    </div>
+  </div>
+</aside>
+<main class="main-content">
 <div class="container">
   ${msgHtml}
   <div class="toolbar">
@@ -362,6 +455,8 @@ md-outlined-text-field{width:100%}
     </table>
     ${emptyHtml}
   </div>
+</div>
+</main>
 </div>
 
 <!-- Upload Dialog -->
@@ -1153,6 +1248,207 @@ window.addEventListener('load', function(){
 // Also try immediately
 try{ renderClipboard(); }catch(e){}
 refreshIcons();
+// ── Sidebar: Mobile toggle ──
+function toggleSidebar(force){
+  var sb=document.getElementById('sidebar');
+  var ov=document.getElementById('sidebarOverlay');
+  if(!sb||!ov) return;
+  var open=force!==undefined?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',open);
+  ov.classList.toggle('show',open);
+}
+
+// ── Sidebar: Collapse (desktop) ──
+var SB_COLLAPSE_KEY='fm_sidebar_collapsed';
+function toggleSidebarCollapse(force){
+  var sb=document.getElementById('sidebar');
+  if(!sb) return;
+  var collapsed=force!==undefined?force:!sb.classList.contains('collapsed');
+  sb.classList.toggle('collapsed',collapsed);
+  try{localStorage.setItem(SB_COLLAPSE_KEY,collapsed?'1':'0')}catch(e){}
+}
+// Restore collapse state on load
+try{if(localStorage.getItem(SB_COLLAPSE_KEY)==='1')document.getElementById('sidebar').classList.add('collapsed')}catch(e){}
+
+// ── Sidebar: Bookmarks ──
+var BM_KEY='fm_bookmarks';
+function getBookmarks(){
+  try{var d=JSON.parse(localStorage.getItem(BM_KEY));return Array.isArray(d)?d:[]}catch(e){return[]}
+}
+function saveBookmarks(bms){localStorage.setItem(BM_KEY,JSON.stringify(bms))}
+function removeBookmark(idx){
+  var bms=getBookmarks();
+  if(idx<0||idx>=bms.length) return;
+  var name=bms[idx].name||bms[idx].path;
+  bms.splice(idx,1);
+  saveBookmarks(bms);
+  renderBookmarks();
+  showToast('已移除 "'+name+'"','success');
+}
+function renderBookmarks(){
+  var el=document.getElementById('bookmarkList');if(!el) return;
+  var bms=getBookmarks();
+  var cp=location.pathname;
+  var html='<a class="bookmark-item'+(cp==='/'?' active':'')+'" href="/"><md-icon>home</md-icon><span class="bm-label">根目录</span></a>';
+  for(var i=0;i<bms.length;i++){
+    var b=bms[i];
+    var active=cp===b.path?' active':'';
+    var label=b.name||b.path;
+    html+='<a class="bookmark-item'+active+'" href="'+b.path+'">'+
+      '<md-icon>folder</md-icon>'+
+      '<span class="bm-label">'+esc(label)+'</span>'+
+      '<span class="bm-remove" onclick="event.preventDefault();event.stopPropagation();removeBookmark('+i+')" title="移除"><md-icon>close</md-icon></span>'+
+      '</a>';
+  }
+  el.innerHTML=html;
+}
+function addBookmark(){
+  var cp=location.pathname;
+  var bms=getBookmarks();
+  for(var i=0;i<bms.length;i++){if(bms[i].path===cp){showToast('该目录已在常用列表中','info');return}}
+  var name=cp==='/'?'根目录':decodeURIComponent(cp.split('/').filter(Boolean).pop()||cp);
+  bms.push({path:cp,name:name});
+  saveBookmarks(bms);
+  renderBookmarks();
+  showToast('已添加 "'+name+'" 到常用目录','success');
+}
+
+// ── Sidebar: Directory Tree ──
+var treeCache={};
+function loadDirs(dirPath,cb){
+  if(treeCache[dirPath]){cb(treeCache[dirPath]);return}
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST','/?action=listdirs&dir='+encodeURIComponent(dirPath));
+  xhr.onload=function(){
+    if(xhr.status===200){
+      try{var dirs=JSON.parse(xhr.responseText);treeCache[dirPath]=dirs;cb(dirs)}catch(e){cb([])}
+    } else cb([])
+  };
+  xhr.onerror=function(){cb([])};
+  xhr.send();
+}
+
+function buildTreeNode(name,parentPath,depth,currentPathParts){
+  var fullPath=parentPath+name+'/';
+  var isCurrentPath=false;
+  // Check if this node is on the current path
+  var testParts=fullPath.split('/').filter(Boolean);
+  if(testParts.length<=currentPathParts.length){
+    isCurrentPath=true;
+    for(var i=0;i<testParts.length;i++){
+      if(testParts[i]!==currentPathParts[i]){isCurrentPath=false;break}
+    }
+  }
+  var indent=depth*12;
+  var node=document.createElement('div');
+  node.className='tree-node';
+  var row=document.createElement('a');
+  row.className='tree-row'+(isCurrentPath&&testParts.length===currentPathParts.length?' active':'');
+  row.href=fullPath;
+  row.style.paddingLeft=(indent+8)+'px';
+  row.innerHTML='<span class="tree-chevron empty"><md-icon>chevron_right</md-icon></span>'+
+    '<span class="tree-icon"><md-icon>folder</md-icon></span>'+
+    '<span class="tree-label">'+esc(name)+'</span>';
+  node.appendChild(row);
+
+  var childContainer=document.createElement('div');
+  childContainer.className='tree-children';
+  node.appendChild(childContainer);
+
+  var chevron=row.querySelector('.tree-chevron');
+  var loaded=false;
+  var expanded=false;
+
+  function expand(){
+    if(expanded) return;
+    expanded=true;
+    chevron.classList.remove('empty');
+    chevron.classList.add('expanded');
+    childContainer.classList.add('open');
+    if(!loaded){
+      loaded=true;
+      loadDirs(fullPath,function(dirs){
+        for(var i=0;i<dirs.length;i++){
+          var child=buildTreeNode(dirs[i],fullPath,depth+1,currentPathParts);
+          childContainer.appendChild(child);
+        }
+        if(dirs.length===0) chevron.classList.add('empty');
+      });
+    }
+  }
+  function collapse(){
+    expanded=false;
+    chevron.classList.remove('expanded');
+    childContainer.classList.remove('open');
+  }
+
+  chevron.addEventListener('click',function(e){
+    e.preventDefault();e.stopPropagation();
+    if(expanded) collapse(); else expand();
+  });
+  row.addEventListener('click',function(e){
+    if(e.target.closest('.tree-chevron')){e.preventDefault();return}
+    // Navigate
+  });
+
+  node._expand=expand;
+  node._path=fullPath;
+  return node;
+}
+
+function initDirTree(){
+  var container=document.getElementById('dirTree');
+  if(!container) return;
+  var cp=location.pathname;
+  var currentParts=cp.split('/').filter(Boolean);
+
+  // Load root dirs
+  loadDirs('/',function(dirs){
+    for(var i=0;i<dirs.length;i++){
+      var node=buildTreeNode(dirs[i],'/',0,currentParts);
+      container.appendChild(node);
+    }
+    // Auto-expand path to current directory
+    autoExpandPath(container,currentParts);
+  });
+}
+
+function autoExpandPath(container,parts){
+  if(parts.length===0) return;
+  var nodes=container.querySelectorAll(':scope > .tree-node');
+  for(var i=0;i<nodes.length;i++){
+    var label=nodes[i].querySelector('.tree-label');
+    if(label && label.textContent===parts[0]){
+      if(typeof nodes[i]._expand==='function') nodes[i]._expand();
+      // Wait for children to load, then expand next level
+      if(parts.length>1){
+        var remaining=parts.slice(1);
+        var observer=new MutationObserver(function(muts,obs){
+          var childContainer=nodes[i].querySelector('.tree-children');
+          if(childContainer&&childContainer.children.length>0){
+            obs.disconnect();
+            autoExpandPath(childContainer,remaining);
+          }
+        });
+        var childContainer=nodes[i].querySelector('.tree-children');
+        if(childContainer){
+          observer.observe(childContainer,{childList:true});
+          // Timeout safety
+          setTimeout(function(){observer.disconnect()},5000);
+        }
+      }
+      break;
+    }
+  }
+}
+
+// Initialize sidebar
+window.addEventListener('load',function(){
+  try{renderBookmarks()}catch(e){console.error('renderBookmarks error:',e)}
+  try{initDirTree()}catch(e){console.error('initDirTree error:',e)}
+});
+try{renderBookmarks()}catch(e){}
+
 // 兜底：CDN 加载失败时仍显示未升级的组件（隐藏只作用于未定义元素，不再整页隐藏）
 setTimeout(function(){ document.documentElement.classList.add('ready'); }, 2000);
 </script>
