@@ -556,43 +556,29 @@ async function batchDownload(){
 
   var tpIds = [];
   for(var i=0;i<names.length;i++){
-    tpIds.push(addTransferItem({ name: names[i], size: 0, type: 'download' }));
+    tpIds.push(addTransferItem({ name: names[i], size: 0, type: 'download', detail: '等待中' }));
   }
   showToast('开始下载 '+names.length+' 项...', 'info');
 
-  var okCount = 0, failCount = 0;
   for(var i=0;i<names.length;i++){
     var name = names[i];
     var idx = i+1;
     updateTransferItem(tpIds[i], { status: 'active', detail: '下载中 ' + idx + '/' + names.length });
-    try{
-      var fileUrl = window.location.origin + currentPath + encodeURIComponent(name) + '?download=1';
-      var r = await fetch(fileUrl);
-      if(!r.ok){ throw new Error('HTTP ' + r.status); }
-      var blob = await r.blob();
-      var blobUrl = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = name;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      (function(el, u){
-        setTimeout(function(){ el.remove(); URL.revokeObjectURL(u); }, 60000);
-      })(a, blobUrl);
-      updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: formatSize(blob.size) + ' · 完成' });
-      okCount++;
-    }catch(e){
-      updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '下载失败' });
-      failCount++;
+    var a = document.createElement('a');
+    a.href = currentPath + encodeURIComponent(name) + '?download=1';
+    a.download = name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    (function(el){ setTimeout(function(){ el.remove(); }, 1000); })(a);
+    updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: '已触发下载' });
+    // Wait a bit between downloads so browser can process them
+    if(i < names.length - 1){
+      await new Promise(function(resolve){ setTimeout(resolve, 300); });
     }
   }
 
-  if(failCount === 0){
-    showToast('全部下载完成，共 '+okCount+' 个文件', 'success');
-  } else {
-    showToast('下载结束：成功 '+okCount+'，失败 '+failCount, 'info');
-  }
+  showToast('全部下载已触发，共 '+names.length+' 个文件', 'success');
   setTimeout(function(){ tpIds.forEach(function(id){ removeTransferItem(id); }); }, 5000);
 }
 
