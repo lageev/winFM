@@ -20,7 +20,11 @@
       "Bash(where gh *)",
       "Bash(where.exe gh *)",
       "Bash(C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe api *)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(git push *)",
+      "Bash(git stash *)",
+      "Bash(git check-ignore *)",
+      "Bash(git pull *)"
     ]
   }
 }

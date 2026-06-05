@@ -27,7 +27,7 @@ function handle(req, res) {
       return;
     }
 
-    if (action === 'batchdownload' || action === 'listdirs') {
+    if (action === 'listdirs') {
       handleBatch(req, res, url, rp, fp, action);
       return;
     }

@@ -51,7 +51,7 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
     const previewBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + esc(i.name) + '" aria-label="预览" title="预览"><md-icon>visibility</md-icon></md-icon-button>';
     const dn = esc(i.name);
     return '<tr class="file-row" data-name="' + dn + '">' +
-      '<td class="col-check"><md-checkbox touch-target="wrapper" class="row-cb" data-name="' + dn + '" aria-label="选择 ' + dn + '"></md-checkbox></td>' +
+      '<td class="col-check"><md-checkbox touch-target="wrapper" class="row-cb" data-name="' + dn + '"' + (i.isDir ? ' data-dir="1"' : '') + ' aria-label="选择 ' + dn + '"></md-checkbox></td>' +
       '<td class="col-icon file-icon">' + icon + '</td>' +
       '<td class="col-name file-name"><a href="' + href + '">' + dn + '</a></td>' +
       '<td class="col-size file-size">' + size + '</td>' +
@@ -308,6 +308,7 @@ md-outlined-text-field{width:100%}
 .batch-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:16px;margin-bottom:16px;font-size:14px;flex-wrap:wrap;background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)}
 .batch-bar b{font-weight:600}
 .batch-bar md-outlined-button{--md-outlined-button-label-text-color:var(--md-sys-color-on-primary-container);--md-outlined-button-outline-color:color-mix(in srgb,var(--md-sys-color-on-primary-container) 40%,transparent)}
+.batch-bar md-filled-tonal-button{--md-filled-tonal-button-container-color:var(--md-sys-color-surface);--md-filled-tonal-button-label-text-color:var(--md-sys-color-on-surface);--md-filled-tonal-button-icon-color:var(--md-sys-color-on-surface)}
 
 @media(max-width:860px){
   .app-bar{padding:10px 16px;gap:10px}
