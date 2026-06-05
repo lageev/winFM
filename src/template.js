@@ -259,7 +259,9 @@ md-outlined-text-field{width:100%}
 .tp-header-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--md-sys-color-primary);transition:width .3s ease;border-radius:0 2px 0 0;opacity:0}
 .tp-header-bar.active{opacity:1}
 .tp-header-bar.done{background:#3FA66A;transition:width .15s ease,background .3s}
-.tp-header-info{font-size:12px;color:var(--md-sys-color-on-surface-variant);white-space:nowrap;min-width:0;flex-shrink:1}
+.tp-header-info{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--md-sys-color-on-surface-variant);min-width:0;flex:1;overflow:hidden}
+.tp-header-info-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tp-header-info-pct{flex-shrink:0;white-space:nowrap;font-weight:500;color:var(--md-sys-color-primary)}
 .tp-header:hover{background:var(--md-sys-color-surface-container-high)}
 .tp-header md-icon{font-size:20px;color:var(--md-sys-color-primary)}
 .tp-title{font-size:14px;font-weight:500;flex-shrink:0}
@@ -993,16 +995,27 @@ function updateHeaderBar() {
   }
 
   if (infoEl) {
+    var nameEl = infoEl.querySelector('.tp-header-info-name');
+    var pctEl = infoEl.querySelector('.tp-header-info-pct');
+    if (!nameEl) { infoEl.innerHTML = '<span class="tp-header-info-name"></span><span class="tp-header-info-pct"></span>'; nameEl = infoEl.querySelector('.tp-header-info-name'); pctEl = infoEl.querySelector('.tp-header-info-pct'); }
     if (active.length) {
       var current = transferItems.find(function(t) { return t.status === 'active'; });
-      infoEl.textContent = current ? current.name + ' ' + Math.round(current.progress) + '%' : active.length + ' 项等待中';
+      if (current) {
+        nameEl.textContent = current.name;
+        pctEl.textContent = Math.round(current.progress) + '%';
+      } else {
+        nameEl.textContent = active.length + ' 项等待中';
+        pctEl.textContent = '';
+      }
     } else if (doneItems.length || errorItems.length) {
       var parts = [];
       if (doneItems.length) parts.push(doneItems.length + ' 完成');
       if (errorItems.length) parts.push(errorItems.length + ' 失败');
-      infoEl.textContent = parts.join('，');
+      nameEl.textContent = parts.join('，');
+      pctEl.textContent = '';
     } else {
-      infoEl.textContent = '';
+      nameEl.textContent = '';
+      pctEl.textContent = '';
     }
   }
 }
