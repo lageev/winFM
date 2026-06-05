@@ -25,7 +25,7 @@
 
 ### 🎨 界面设计
 - 📱 响应式设计，完美支持移动端
-- 🌙 现代化 UI，使用 Lucide 图标
+- 🌙 Material Design 3 界面（Material Web 组件 + Material Symbols 图标，自动适配深浅色）
 - ⌨️ 快捷键支持（ESC 关闭弹窗）
 
 ### 🔒 安全特性
@@ -95,8 +95,9 @@ ports:
 - **运行时**: Node.js 20 (Alpine)
 - **依赖**: 无（纯标准库实现）
 - **打包**: zip（容器内预装）
-- **图标**: Lucide Icons
-- **样式**: Tailwind CSS
+- **UI 组件**: Material Web（Material Design 3）
+- **图标**: Material Symbols
+- **样式**: Material Design 3 设计令牌（原生 CSS，无构建步骤）
 
 ## 📁 支持的文件类型
 

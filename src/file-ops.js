@@ -40,24 +40,24 @@ function isAudioFile(ext) {
 }
 
 function getIcon(name, isDir) {
-  if (isDir) return '<i data-lucide="folder" class="fic fic-blue"></i>';
+  if (isDir) return '<md-icon class="fic fic-folder">folder</md-icon>';
   const ext = path.extname(name).toLowerCase();
   const map = {
     '.jpg':['image','green'],'.jpeg':['image','green'],'.png':['image','green'],'.gif':['image','green'],'.webp':['image','green'],'.svg':['image','green'],'.bmp':['image','green'],
-    '.mp4':['film','violet'],'.avi':['film','violet'],'.mkv':['film','violet'],'.mov':['film','violet'],'.wmv':['film','violet'],
-    '.mp3':['music','rose'],'.wav':['music','rose'],'.flac':['music','rose'],'.aac':['music','rose'],'.ogg':['music','rose'],
-    '.pdf':['file-text','rose'],'.doc':['file-text','blue'],'.docx':['file-text','blue'],
-    '.xls':['file-spreadsheet','green'],'.xlsx':['file-spreadsheet','green'],'.csv':['file-spreadsheet','green'],
-    '.ppt':['presentation','amber'],'.pptx':['presentation','amber'],
-    '.zip':['file-archive','amber'],'.rar':['file-archive','amber'],'.7z':['file-archive','amber'],'.tar':['file-archive','amber'],'.gz':['file-archive','amber'],
-    '.html':['file-code','amber'],'.css':['file-code','blue'],'.js':['file-code','amber'],'.ts':['file-code','blue'],
-    '.json':['file-code','cyan'],'.xml':['file-code','cyan'],'.yaml':['file-code','cyan'],'.yml':['file-code','cyan'],
-    '.py':['file-code','blue'],'.java':['file-code','rose'],'.go':['file-code','cyan'],'.rs':['file-code','amber'],'.c':['file-code','blue'],'.cpp':['file-code','blue'],
-    '.txt':['file-text','blue'],'.md':['file-text','blue'],'.log':['file-text',''],
+    '.mp4':['movie','violet'],'.avi':['movie','violet'],'.mkv':['movie','violet'],'.mov':['movie','violet'],'.wmv':['movie','violet'],
+    '.mp3':['music_note','rose'],'.wav':['music_note','rose'],'.flac':['music_note','rose'],'.aac':['music_note','rose'],'.ogg':['music_note','rose'],
+    '.pdf':['picture_as_pdf','rose'],'.doc':['description','blue'],'.docx':['description','blue'],
+    '.xls':['table_chart','green'],'.xlsx':['table_chart','green'],'.csv':['table_chart','green'],
+    '.ppt':['slideshow','amber'],'.pptx':['slideshow','amber'],
+    '.zip':['folder_zip','amber'],'.rar':['folder_zip','amber'],'.7z':['folder_zip','amber'],'.tar':['folder_zip','amber'],'.gz':['folder_zip','amber'],
+    '.html':['code','amber'],'.css':['code','blue'],'.js':['code','amber'],'.ts':['code','blue'],
+    '.json':['data_object','cyan'],'.xml':['code','cyan'],'.yaml':['code','cyan'],'.yml':['code','cyan'],
+    '.py':['code','blue'],'.java':['code','rose'],'.go':['code','cyan'],'.rs':['code','amber'],'.c':['code','blue'],'.cpp':['code','blue'],
+    '.txt':['description','blue'],'.md':['description','blue'],'.log':['description',''],
     '.exe':['terminal',''],'.sh':['terminal',''],'.bat':['terminal',''],
   };
-  const m = map[ext] || ['file',''];
-  return '<i data-lucide="' + m[0] + '" class="fic' + (m[1] ? ' fic-' + m[1] : '') + '"></i>';
+  const m = map[ext] || ['draft',''];
+  return '<md-icon class="fic' + (m[1] ? ' fic-' + m[1] : '') + '">' + m[0] + '</md-icon>';
 }
 
 module.exports = { copyRecursiveSync, isTextFile, isImageFile, isVideoFile, isAudioFile, getIcon };
