@@ -56,27 +56,37 @@ function handleGet(req, res, url, rp, fp) {
     return;
   }
 
-  // Serve file
+  // Serve file (streamed; supports HTTP Range for large files / resumable downloads)
   const ext = path.extname(fp).toLowerCase();
   const download = url.searchParams.get('download');
 
+  const headers = { 'Accept-Ranges': 'bytes' };
   if (download) {
-    const dlName = path.basename(fp);
-    const buf = fs.readFileSync(fp);
-    res.writeHead(200, {
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': attachmentDisposition(dlName),
-      'Content-Length': buf.length
-    });
-    res.end(buf);
-    return;
+    headers['Content-Type'] = 'application/octet-stream';
+    headers['Content-Disposition'] = attachmentDisposition(path.basename(fp));
+  } else {
+    headers['Content-Type'] = MIME[ext] || 'application/octet-stream';
   }
 
-  res.writeHead(200, {
-    'Content-Type': MIME[ext] || 'application/octet-stream',
-    'Content-Length': st.size
-  });
-  fs.createReadStream(fp).pipe(res);
+  let start = 0, end = st.size - 1, status = 200;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (m && st.size > 0) {
+    if (m[1] === '') { start = Math.max(st.size - Number(m[2]), 0); }
+    else { start = Number(m[1]); end = m[2] === '' ? end : Number(m[2]); }
+    if (!(start >= 0 && end < st.size && start <= end)) {
+      res.writeHead(416, { 'Content-Range': 'bytes */' + st.size });
+      res.end();
+      return;
+    }
+    status = 206;
+    headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + st.size;
+  }
+
+  headers['Content-Length'] = end - start + 1;
+  res.writeHead(status, headers);
+  const stream = fs.createReadStream(fp, { start, end });
+  stream.on('error', () => res.destroy());
+  stream.pipe(res);
 }
 
 module.exports = { handleGet };
