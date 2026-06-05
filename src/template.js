@@ -346,7 +346,7 @@ md-outlined-text-field{width:100%}
 /* Directory tree */
 .tree-container{padding:2px 8px 12px;overflow-x:auto}
 .tree-node{user-select:none}
-.tree-row{--tree-indent:0px;position:relative;display:grid;grid-template-columns:20px 20px minmax(0,1fr);align-items:center;gap:6px;min-height:32px;width:max-content;min-width:100%;padding:4px 8px 4px calc(8px + var(--tree-indent));font-size:14px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .12s,color .12s;text-decoration:none;white-space:nowrap;border-radius:8px}
+.tree-row{--tree-indent:0px;position:relative;display:inline-flex;align-items:center;gap:7px;height:32px;max-width:calc(100% - var(--tree-indent));margin:1px 0 1px var(--tree-indent);padding:0 10px 0 6px;font-size:14px;line-height:32px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .12s,color .12s;text-decoration:none;white-space:nowrap;border-radius:8px;overflow:hidden;vertical-align:top}
 .tree-row:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
 .tree-row.in-path{color:var(--md-sys-color-on-surface)}
 .tree-row.in-path .tree-icon md-icon{color:var(--md-sys-color-primary)}
