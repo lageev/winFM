@@ -62,14 +62,13 @@ function handleGet(req, res, url, rp, fp) {
 
   if (download) {
     const dlName = path.basename(fp);
+    const buf = fs.readFileSync(fp);
     res.writeHead(200, {
-      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Content-Type': 'application/octet-stream',
       'Content-Disposition': attachmentDisposition(dlName),
-      'Content-Length': st.size
+      'Content-Length': buf.length
     });
-    const stream = fs.createReadStream(fp);
-    stream.on('error', function() { try { res.end(); } catch(e) {} });
-    stream.pipe(res);
+    res.end(buf);
     return;
   }
 
