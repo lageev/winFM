@@ -161,7 +161,8 @@ if('adoptedStyleSheets' in Document.prototype){
 }}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{font-family:Roboto,system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);min-height:100vh;-webkit-font-smoothing:antialiased;opacity:0;transition:opacity .18s ease}html.ready body{opacity:1}
+body{font-family:Roboto,system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);min-height:100vh;-webkit-font-smoothing:antialiased}
+:not(:defined){visibility:hidden}html.ready :not(:defined){visibility:visible}
 .material-symbols-outlined,md-icon{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
 md-icon{vertical-align:middle;line-height:1}
 a{color:inherit}
@@ -829,12 +830,11 @@ async function doPaste(){
 window.addEventListener('load', function(){
   try{ renderClipboard(); }catch(e){ console.error('renderClipboard error:', e); }
   refreshIcons();
-  document.documentElement.classList.add('ready');
 });
 // Also try immediately
 try{ renderClipboard(); }catch(e){}
 refreshIcons();
-// 兜底：即使 CDN 加载失败也不会永久隐藏
+// 兜底：CDN 加载失败时仍显示未升级的组件（隐藏只作用于未定义元素，不再整页隐藏）
 setTimeout(function(){ document.documentElement.classList.add('ready'); }, 2000);
 </script>
 </body>
