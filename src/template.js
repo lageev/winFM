@@ -464,13 +464,13 @@ document.addEventListener('click', function(e){
   var dlLink = e.target.closest('a[href$="?download=1"]');
   if(dlLink && dlLink.closest('.file-row')){
     e.preventDefault();
-    var href = dlLink.getAttribute('href');
-    var name = decodeURIComponent(href.replace('?download=1',''));
-    var tpId = addTransferItem({ name: name, size: 0, type: 'download', detail: '下载中...' });
+    var dlHref = dlLink.getAttribute('href');
+    var dlName = decodeURIComponent(dlHref.replace('?download=1',''));
+    var tpId = addTransferItem({ name: dlName, size: 0, type: 'download', detail: '下载中...' });
     updateTransferItem(tpId, { status: 'active' });
     // Trigger actual download
     var a = document.createElement('a');
-    a.href = href;
+    a.href = dlHref;
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
