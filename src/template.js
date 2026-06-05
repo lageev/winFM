@@ -255,7 +255,11 @@ md-outlined-text-field{width:100%}
 /* Floating transfer panel */
 .transfer-panel{position:fixed;bottom:20px;right:20px;z-index:200;width:340px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
 .transfer-panel.hidden{opacity:0;pointer-events:none;transform:scale(.92)}
-.tp-header{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;background:var(--md-sys-color-surface-container);border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.tp-header{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;background:var(--md-sys-color-surface-container);border-bottom:1px solid var(--md-sys-color-outline-variant);position:relative}
+.tp-header-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--md-sys-color-primary);transition:width .3s ease;border-radius:0 2px 0 0;opacity:0}
+.tp-header-bar.active{opacity:1}
+.tp-header-bar.done{background:#3FA66A;transition:width .15s ease,background .3s}
+.tp-header-info{font-size:12px;color:var(--md-sys-color-on-surface-variant);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
 .tp-header:hover{background:var(--md-sys-color-surface-container-high)}
 .tp-header md-icon{font-size:20px;color:var(--md-sys-color-primary)}
 .tp-title{flex:1;font-size:14px;font-weight:500}
@@ -956,9 +960,55 @@ function getTransferIcon(status) {
 function renderTransferPanel() {
   var body = document.getElementById('tpBody');
   var countEl = document.getElementById('tpCount');
+  var barEl = document.getElementById('tpBar');
+  var infoEl = document.getElementById('tpInfo');
   if (!body) return;
   var active = transferItems.filter(function(t) { return t.status === 'active' || t.status === 'waiting'; });
+  var doneItems = transferItems.filter(function(t) { return t.status === 'done'; });
+  var errorItems = transferItems.filter(function(t) { return t.status === 'error'; });
   countEl.textContent = active.length || transferItems.length;
+
+  // Update header progress bar
+  if (barEl) {
+    if (!transferItems.length) {
+      barEl.className = 'tp-header-bar';
+      barEl.style.width = '0';
+    } else if (active.length) {
+      var totalProgress = 0;
+      var activeCount = 0;
+      transferItems.forEach(function(t) {
+        if (t.status === 'active') { totalProgress += t.progress; activeCount++; }
+        else if (t.status === 'waiting') { activeCount++; }
+        else if (t.status === 'done') { totalProgress += 100; activeCount++; }
+      });
+      var pct = activeCount ? Math.round(totalProgress / activeCount) : 0;
+      barEl.className = 'tp-header-bar active';
+      barEl.style.width = pct + '%';
+    } else {
+      barEl.className = 'tp-header-bar done';
+      barEl.style.width = '100%';
+    }
+  }
+
+  // Update header info text (visible when collapsed)
+  if (infoEl) {
+    if (active.length) {
+      var current = transferItems.find(function(t) { return t.status === 'active'; });
+      if (current) {
+        infoEl.textContent = current.name + ' ' + Math.round(current.progress) + '%';
+      } else {
+        infoEl.textContent = active.length + ' 项等待中';
+      }
+    } else if (doneItems.length || errorItems.length) {
+      var parts = [];
+      if (doneItems.length) parts.push(doneItems.length + ' 完成');
+      if (errorItems.length) parts.push(errorItems.length + ' 失败');
+      infoEl.textContent = parts.join('，');
+    } else {
+      infoEl.textContent = '';
+    }
+  }
+
   if (!transferItems.length) {
     body.innerHTML = '<div class="tp-empty">暂无传输任务</div>';
     return;
@@ -1023,8 +1073,10 @@ setTimeout(function(){ document.documentElement.classList.add('ready'); }, 2000)
   <div class="tp-header" onclick="toggleTransferPanel()">
     <md-icon>swap_vert</md-icon>
     <span class="tp-title">传输队列</span>
+    <span class="tp-header-info" id="tpInfo"></span>
     <span class="tp-count" id="tpCount">0</span>
     <span class="tp-toggle" id="tpToggle"><md-icon>expand_more</md-icon></span>
+    <div class="tp-header-bar" id="tpBar"></div>
   </div>
   <div class="tp-body" id="tpBody">
     <div class="tp-empty" id="tpEmpty">暂无传输任务</div>
