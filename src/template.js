@@ -253,16 +253,16 @@ md-outlined-text-field{width:100%}
 #progressText{font-size:13px;color:var(--md-sys-color-on-surface-variant);text-align:center}
 
 /* Floating transfer panel */
-.transfer-panel{position:fixed;bottom:20px;right:20px;z-index:200;width:340px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
+.transfer-panel{position:fixed;bottom:20px;right:20px;z-index:200;width:420px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
 .transfer-panel.hidden{opacity:0;pointer-events:none;transform:scale(.92)}
 .tp-header{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;background:var(--md-sys-color-surface-container);border-bottom:1px solid var(--md-sys-color-outline-variant);position:relative}
 .tp-header-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--md-sys-color-primary);transition:width .3s ease;border-radius:0 2px 0 0;opacity:0}
 .tp-header-bar.active{opacity:1}
 .tp-header-bar.done{background:#3FA66A;transition:width .15s ease,background .3s}
-.tp-header-info{font-size:12px;color:var(--md-sys-color-on-surface-variant);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.tp-header-info{font-size:12px;color:var(--md-sys-color-on-surface-variant);white-space:nowrap;min-width:0;flex-shrink:1}
 .tp-header:hover{background:var(--md-sys-color-surface-container-high)}
 .tp-header md-icon{font-size:20px;color:var(--md-sys-color-primary)}
-.tp-title{flex:1;font-size:14px;font-weight:500}
+.tp-title{font-size:14px;font-weight:500;flex-shrink:0}
 .tp-count{font-size:12px;color:var(--md-sys-color-on-surface-variant);background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);padding:2px 8px;border-radius:99px}
 .tp-toggle md-icon{font-size:20px;color:var(--md-sys-color-on-surface-variant);transition:transform .2s}
 .tp-toggle.collapsed md-icon{transform:rotate(180deg)}
