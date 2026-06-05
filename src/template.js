@@ -252,27 +252,6 @@ md-outlined-text-field{width:100%}
 #progressBar{--md-linear-progress-track-height:8px;--md-linear-progress-active-indicator-height:8px}
 #progressText{font-size:13px;color:var(--md-sys-color-on-surface-variant);text-align:center}
 
-/* Upload queue inside dialog */
-.upload-queue{max-height:240px;overflow-y:auto;border:1px solid var(--md-sys-color-outline-variant);border-radius:12px;background:var(--md-sys-color-surface-container-lowest)}
-.upload-queue:empty{display:none}
-.uq-item{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13px;border-bottom:1px solid var(--md-sys-color-outline-variant)}
-.uq-item:last-child{border-bottom:0}
-.uq-icon{flex-shrink:0;width:20px;text-align:center}
-.uq-icon md-icon{font-size:18px}
-.uq-icon.waiting md-icon{color:var(--md-sys-color-outline)}
-.uq-icon.uploading md-icon{color:var(--md-sys-color-primary);animation:spin 1s linear infinite}
-.uq-icon.done md-icon{color:#3FA66A}
-.uq-icon.error md-icon{color:var(--md-sys-color-error)}
-.uq-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.uq-size{flex-shrink:0;color:var(--md-sys-color-on-surface-variant);font-size:12px;min-width:56px;text-align:right}
-.uq-status{flex-shrink:0;font-size:12px;min-width:48px;text-align:right}
-.uq-status.waiting{color:var(--md-sys-color-outline)}
-.uq-status.uploading{color:var(--md-sys-color-primary)}
-.uq-status.done{color:#3FA66A}
-.uq-status.error{color:var(--md-sys-color-error)}
-.uq-bar{position:absolute;bottom:0;left:0;height:2px;background:var(--md-sys-color-primary);transition:width .2s;border-radius:0 0 0 0}
-.uq-item{position:relative}
-
 /* Floating transfer panel */
 .transfer-panel{position:fixed;bottom:20px;right:20px;z-index:200;width:340px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
 .transfer-panel.hidden{opacity:0;pointer-events:none;transform:scale(.92)}
@@ -390,7 +369,6 @@ md-outlined-text-field{width:100%}
     <div id="uploadProgress" style="display:none">
       <md-linear-progress id="progressBar" value="0" aria-label="上传进度"></md-linear-progress>
       <div id="progressText"></div>
-      <div id="uploadQueue" class="upload-queue"></div>
     </div>
   </div>
   <div slot="actions" class="modal-actions">
@@ -690,9 +668,6 @@ async function handleFiles(files){
   var totalSize = 0;
   for(var i=0;i<files.length;i++) totalSize += files[i].size;
   var uploadedSize = 0;
-  var statuses = [];
-  for(var i=0;i<files.length;i++) statuses.push('waiting');
-  renderUploadQueue(files, statuses);
 
   // Add to floating transfer panel
   var tpIds = [];
@@ -704,8 +679,6 @@ async function handleFiles(files){
   for(var i=0;i<files.length;i++){
     var file = files[i];
     var idx = i+1;
-    statuses[i] = 'uploading';
-    renderUploadQueue(files, statuses);
     updateTransferItem(tpIds[i], { status: 'active', detail: formatSize(file.size) });
     text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name;
     bar.value = totalSize ? uploadedSize/totalSize : i/files.length;
@@ -717,13 +690,9 @@ async function handleFiles(files){
         updateTransferItem(tpIds[i], { progress: total ? loaded/total*100 : 0, detail: formatSize(loaded) + '/' + formatSize(total) });
       });
       uploadedSize += file.size;
-      statuses[i] = 'done';
-      renderUploadQueue(files, statuses);
       updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: '完成' });
       okCount++;
     }catch(e){
-      statuses[i] = 'error';
-      renderUploadQueue(files, statuses);
       updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '上传失败' });
       failCount++;
     }
@@ -1020,22 +989,6 @@ function renderTransferPanel() {
     });
   }
   body.innerHTML = html;
-}
-function renderUploadQueue(files, statuses) {
-  var el = document.getElementById('uploadQueue');
-  if (!el) return;
-  var html = '';
-  for (var i = 0; i < files.length; i++) {
-    var s = statuses[i] || 'waiting';
-    var pct = s === 'uploading' ? ' …' : s === 'done' ? ' ✓' : s === 'error' ? ' ✗' : '';
-    html += '<div class="uq-item" data-idx="' + i + '">' +
-      '<div class="uq-icon ' + s + '"><md-icon>' + getTransferIcon(s) + '</md-icon></div>' +
-      '<span class="uq-name">' + esc(files[i].name) + '</span>' +
-      '<span class="uq-size">' + formatSize(files[i].size) + '</span>' +
-      '<span class="uq-status ' + s + '">' + pct + '</span>' +
-      '</div>';
-  }
-  el.innerHTML = html;
 }
 function showTransferPanel() {
   var p = document.getElementById('transferPanel');
