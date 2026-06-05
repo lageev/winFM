@@ -174,7 +174,7 @@ a{color:inherit}
 .app-bar-main{display:flex;align-items:center;gap:18px;min-width:0;flex:1}
 .brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
 .brand-mark{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)}
-.brand-mark md-icon{font-size:26px}
+.brand-mark md-icon{--md-icon-size:26px}
 .brand-copy{display:flex;flex-direction:column;line-height:1.15}
 .app-bar h1{margin:0;font-size:22px;font-weight:500;letter-spacing:0;color:var(--md-sys-color-on-surface)}
 .subtitle{font-size:13px;color:var(--md-sys-color-on-surface-variant);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -214,9 +214,9 @@ tr.selected{background:color-mix(in srgb,var(--md-sys-color-primary) 12%,transpa
 .file-name a{color:var(--md-sys-color-on-surface);text-decoration:none;font-weight:500;word-break:break-word}
 .file-name a:hover{color:var(--md-sys-color-primary);text-decoration:underline}
 .file-size,.file-time{color:var(--md-sys-color-on-surface-variant);font-size:13px;white-space:nowrap}
-.file-actions{display:flex;gap:2px;justify-content:flex-end;white-space:nowrap}
+.file-actions{text-align:right;white-space:nowrap}
 .empty{text-align:center;padding:64px 20px;color:var(--md-sys-color-on-surface-variant);font-size:15px}
-.empty md-icon{font-size:48px;display:block;margin:0 auto 12px;opacity:.6}
+.empty md-icon{--md-icon-size:48px;display:block;margin:0 auto 12px;opacity:.6}
 
 .fic{color:var(--md-sys-color-on-surface-variant)}
 .fic-folder{color:var(--md-sys-color-primary)}
@@ -244,7 +244,7 @@ tr.selected{background:color-mix(in srgb,var(--md-sys-color-primary) 12%,transpa
 md-outlined-text-field{width:100%}
 .upload-area{border:2px dashed var(--md-sys-color-outline);border-radius:16px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:var(--md-sys-color-surface-container-low)}
 .upload-area:hover,.upload-area.dragover{border-color:var(--md-sys-color-primary);background:color-mix(in srgb,var(--md-sys-color-primary) 8%,transparent)}
-.upload-area md-icon{font-size:46px;color:var(--md-sys-color-primary)}
+.upload-area md-icon{--md-icon-size:46px;color:var(--md-sys-color-primary)}
 .upload-area p{margin:10px 0 4px;font-size:15px;font-weight:500;color:var(--md-sys-color-on-surface)}
 .drop-zone-hint{font-size:13px;color:var(--md-sys-color-on-surface-variant)}
 #uploadProgress{display:flex;flex-direction:column;gap:8px}
