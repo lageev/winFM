@@ -344,21 +344,24 @@ md-outlined-text-field{width:100%}
 .bookmark-add md-icon{font-size:16px}
 
 /* Directory tree */
-.tree-container{padding:0 4px}
+.tree-container{padding:2px 8px 12px;overflow-x:auto}
 .tree-node{user-select:none}
-.tree-row{display:flex;align-items:center;gap:1px;padding:1px 8px;font-size:13px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .1s;border-radius:3px;text-decoration:none;white-space:nowrap;margin:0;line-height:22px;width:fit-content}
+.tree-row{--tree-indent:0px;position:relative;display:grid;grid-template-columns:20px 20px minmax(0,1fr);align-items:center;gap:6px;min-height:32px;width:max-content;min-width:100%;padding:4px 8px 4px calc(8px + var(--tree-indent));font-size:14px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .12s,color .12s;text-decoration:none;white-space:nowrap;border-radius:8px}
 .tree-row:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
-.tree-row.active{background:color-mix(in srgb,var(--md-sys-color-primary) 10%,transparent);color:var(--md-sys-color-primary);font-weight:500}
+.tree-row.in-path{color:var(--md-sys-color-on-surface)}
+.tree-row.in-path .tree-icon md-icon{color:var(--md-sys-color-primary)}
+.tree-row.active{background:color-mix(in srgb,var(--md-sys-color-primary) 12%,transparent);color:var(--md-sys-color-primary);font-weight:500}
+.tree-row.active::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--md-sys-color-primary)}
 .tree-row.active .tree-icon md-icon{color:var(--md-sys-color-primary)}
-.tree-chevron{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--md-sys-color-outline);transition:transform .15s}
+.tree-chevron{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--md-sys-color-outline);border-radius:50%;transition:background .12s,transform .15s}
 .tree-chevron:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 10%,transparent)}
-.tree-chevron md-icon{font-size:13px}
+.tree-chevron md-icon{font-size:16px}
 .tree-chevron.expanded{transform:rotate(90deg)}
 .tree-chevron.empty{visibility:hidden}
-.tree-icon{flex-shrink:0;display:inline-flex;align-items:center}
-.tree-icon md-icon{font-size:15px;color:var(--md-sys-color-primary)}
-.tree-label{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.tree-children{display:none;padding-left:8px}
+.tree-icon{display:inline-flex;align-items:center;justify-content:center}
+.tree-icon md-icon{font-size:19px;color:var(--md-sys-color-on-surface-variant)}
+.tree-label{display:block;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tree-children{display:none}
 .tree-children.open{display:block}
 
 /* Sidebar toggle (desktop) */
@@ -1339,14 +1342,16 @@ function buildTreeNode(name,parentPath,depth,currentPathParts){
       if(testParts[i]!==currentPathParts[i]){isCurrentPath=false;break}
     }
   }
-  var indent=depth*12;
   var node=document.createElement('div');
   node.className='tree-node';
   var row=document.createElement('a');
-  row.className='tree-row'+(isCurrentPath&&testParts.length===currentPathParts.length?' active':'');
+  var isActive=isCurrentPath&&testParts.length===currentPathParts.length;
+  row.className='tree-row'+(isActive?' active':(isCurrentPath?' in-path':''));
   row.href=fullPath;
   row.draggable=false;
-  row.style.marginLeft=indent+'px';
+  row.style.setProperty('--tree-indent',(depth*18)+'px');
+  row.title=name;
+  if(isActive) row.setAttribute('aria-current','page');
   row.innerHTML='<span class="tree-chevron empty"><md-icon>chevron_right</md-icon></span>'+
     '<span class="tree-icon"><md-icon>folder</md-icon></span>'+
     '<span class="tree-label">'+esc(name)+'</span>';
