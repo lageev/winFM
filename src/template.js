@@ -139,11 +139,10 @@ button,input,a{font:inherit}
 .header{@apply sticky top-0 z-50 flex items-center justify-between gap-4 px-6 py-3 border-b;background:hsl(var(--card)/0.72);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px)}
 .header-main{@apply flex items-center gap-5 min-w-0}
 .brand{@apply flex items-center gap-3 shrink-0}
-.brand-mark{@apply relative grid place-items-center w-10 h-10 text-white overflow-hidden;isolation:isolate;border-radius:12px;background:linear-gradient(145deg,hsl(222 47% 11%) 0%,hsl(var(--accent)) 58%,hsl(var(--success)) 100%);box-shadow:0 10px 24px hsl(var(--accent)/0.22),inset 0 1px 0 rgba(255,255,255,0.28)}
-.brand-mark::before{content:"";position:absolute;inset:1px;border:1px solid rgba(255,255,255,0.24);border-radius:11px}
-.brand-mark::after{content:"";position:absolute;right:8px;top:8px;width:10px;height:10px;border-top:2px solid rgba(255,255,255,0.72);border-right:2px solid rgba(255,255,255,0.72);border-radius:1px}
-.brand-emblem{position:relative;z-index:1;font-size:19px;font-weight:800;line-height:1;letter-spacing:0;transform:translateY(-1px)}
-.brand-baseline{position:absolute;left:9px;bottom:9px;width:18px;height:3px;border-radius:9999px;background:rgba(255,255,255,0.6)}
+.brand-mark{@apply relative grid place-items-center w-10 h-10 text-white overflow-hidden;isolation:isolate;border-radius:12px;background:radial-gradient(circle at 18% 16%,#7adc43 0%,#7adc43 18%,transparent 36%),radial-gradient(circle at 38% 26%,#ffe24a 0%,#ffe24a 18%,transparent 38%),radial-gradient(circle at 68% 22%,#ff4b4b 0%,#ff4b4b 20%,transparent 42%),radial-gradient(circle at 84% 82%,#00b8ff 0%,#00b8ff 24%,transparent 46%),linear-gradient(135deg,#ff9a28 0%,#f02f86 52%,#6e5cff 76%,#00c8f5 100%);box-shadow:0 10px 26px rgba(69,82,181,0.24),0 2px 8px rgba(255,89,84,0.18),inset 0 1px 0 rgba(255,255,255,0.35)}
+.brand-mark::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 34% 16%,rgba(255,255,255,0.56),transparent 38%),linear-gradient(145deg,rgba(255,255,255,0.25),rgba(255,255,255,0) 58%);mix-blend-mode:screen}
+.brand-mark::after{content:"";position:absolute;inset:1px;border:1px solid rgba(255,255,255,0.58);border-radius:11px;box-shadow:inset 0 1px 5px rgba(255,255,255,0.38),inset 0 -9px 18px rgba(255,255,255,0.12)}
+.brand-emblem{position:relative;z-index:1;font-size:14px;font-weight:900;line-height:1;letter-spacing:0;color:#fff;background:linear-gradient(180deg,#fff 0%,#fff7e8 34%,#ffe6fb 66%,#dff2ff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:0.35px rgba(255,255,255,0.86);filter:drop-shadow(0 1px 0 rgba(255,255,255,0.68)) drop-shadow(0 6px 8px rgba(38,31,86,0.42));transform:translateY(-1px)}
 .brand-copy{@apply flex flex-col gap-px leading-none}
 .header h1{@apply text-base font-semibold whitespace-nowrap;letter-spacing:0}
 .subtitle{@apply text-xs text-muted-foreground max-w-[220px] truncate}
@@ -285,7 +284,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <div class="header">
   <div class="header-main">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true"><span class="brand-emblem">w</span><span class="brand-baseline"></span></div>
+      <div class="brand-mark" aria-hidden="true"><span class="brand-emblem">FM</span></div>
       <div class="brand-copy">
         <h1>winFM</h1>
         <div class="subtitle">${esc(currentLabel)}</div>
