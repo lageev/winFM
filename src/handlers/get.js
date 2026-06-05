@@ -63,11 +63,13 @@ function handleGet(req, res, url, rp, fp) {
   if (download) {
     const dlName = path.basename(fp);
     res.writeHead(200, {
-      'Content-Type': 'application/octet-stream',
+      'Content-Type': MIME[ext] || 'application/octet-stream',
       'Content-Disposition': attachmentDisposition(dlName),
       'Content-Length': st.size
     });
-    fs.createReadStream(fp).pipe(res);
+    const stream = fs.createReadStream(fp);
+    stream.on('error', function() { try { res.end(); } catch(e) {} });
+    stream.pipe(res);
     return;
   }
 
