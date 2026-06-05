@@ -50,13 +50,14 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
     const dlBtn = i.isDir ? '' : '<md-icon-button href="' + encodedName + '?download=1" class="material-icon-button" aria-label="下载" title="下载"><md-icon>download</md-icon></md-icon-button>';
     const previewBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + esc(i.name) + '" aria-label="预览" title="预览"><md-icon>visibility</md-icon></md-icon-button>';
     const dn = esc(i.name);
+    const shareBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="share" data-name="' + dn + '" aria-label="分享直链" title="分享直链"><md-icon>share</md-icon></md-icon-button>';
     return '<tr class="file-row" data-name="' + dn + '">' +
       '<td class="col-check"><md-checkbox touch-target="wrapper" class="row-cb" data-name="' + dn + '"' + (i.isDir ? ' data-dir="1"' : '') + ' aria-label="选择 ' + dn + '"></md-checkbox></td>' +
       '<td class="col-icon file-icon">' + icon + '</td>' +
       '<td class="col-name file-name"><a href="' + href + '">' + dn + '</a></td>' +
       '<td class="col-size file-size">' + size + '</td>' +
       '<td class="col-time file-time">' + mtime + '</td>' +
-      '<td class="col-actions file-actions">' + previewBtn + dlBtn +
+      '<td class="col-actions file-actions">' + previewBtn + dlBtn + shareBtn +
         '<md-icon-button type="button" class="material-icon-button act-btn" data-act="rename" data-name="' + dn + '" aria-label="重命名" title="重命名"><md-icon>edit</md-icon></md-icon-button>' +
         '<md-icon-button type="button" class="material-icon-button act-btn" data-act="move" data-name="' + dn + '" aria-label="移动" title="移动"><md-icon>content_cut</md-icon></md-icon-button>' +
         '<md-icon-button type="button" class="material-icon-button act-btn" data-act="copy" data-name="' + dn + '" aria-label="复制" title="复制"><md-icon>content_copy</md-icon></md-icon-button>' +
@@ -353,7 +354,7 @@ md-outlined-text-field{width:100%}
   <div id="clipboardBar"></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th class="col-check"><md-checkbox touch-target="wrapper" id="selectAll" aria-label="选择全部"></md-checkbox></th><th class="col-icon"></th><th class="col-name sortable${sortClass('name')}"><a href="${sortUrl('name')}">名称${sortIcon('name')}</a></th><th class="col-size sortable${sortClass('size')}" style="width:90px"><a href="${sortUrl('size')}">大小${sortIcon('size')}</a></th><th class="col-time sortable${sortClass('mtime')}" style="width:170px"><a href="${sortUrl('mtime')}">修改时间${sortIcon('mtime')}</a></th><th class="col-actions" style="width:220px">操作</th></tr></thead>
+      <thead><tr><th class="col-check"><md-checkbox touch-target="wrapper" id="selectAll" aria-label="选择全部"></md-checkbox></th><th class="col-icon"></th><th class="col-name sortable${sortClass('name')}"><a href="${sortUrl('name')}">名称${sortIcon('name')}</a></th><th class="col-size sortable${sortClass('size')}" style="width:90px"><a href="${sortUrl('size')}">大小${sortIcon('size')}</a></th><th class="col-time sortable${sortClass('mtime')}" style="width:170px"><a href="${sortUrl('mtime')}">修改时间${sortIcon('mtime')}</a></th><th class="col-actions" style="width:260px">操作</th></tr></thead>
       <tbody>
         ${rp !== '/' ? '<tr class="file-row"><td class="col-check"></td><td class="col-icon file-icon"><md-icon class="fic">drive_folder_upload</md-icon></td><td class="col-name file-name"><a href="../">返回上级</a></td><td class="col-size">-</td><td class="col-time">-</td><td class="col-actions"></td></tr>' : ''}
         ${listHtml}
@@ -408,6 +409,21 @@ md-outlined-text-field{width:100%}
   </div>
 </md-dialog>
 
+<!-- Share Dialog -->
+<md-dialog id="shareModal" class="material-dialog">
+  <div slot="headline" class="dialog-headline"><md-icon>share</md-icon><span>分享直链</span></div>
+  <div slot="content" class="dialog-content">
+    <div id="shareFileName" class="dialog-support"></div>
+    <md-outlined-text-field id="shareLinkField" label="直链地址" readonly></md-outlined-text-field>
+    <div class="dialog-support">任何能访问本服务的人都可通过该链接直接打开此文件。</div>
+  </div>
+  <div slot="actions" class="modal-actions">
+    <md-text-button type="button" onclick="closeModal('shareModal')">关闭</md-text-button>
+    <md-outlined-button type="button" onclick="openShareLink()"><md-icon slot="icon">open_in_new</md-icon>打开</md-outlined-button>
+    <md-filled-button type="button" onclick="copyShareLink()"><md-icon slot="icon">content_copy</md-icon>复制链接</md-filled-button>
+  </div>
+</md-dialog>
+
 <!-- Preview Modal -->
 <div class="preview-overlay" id="previewOverlay">
   <md-icon-button class="preview-close" onclick="closePreview()" aria-label="关闭预览"><md-icon>close</md-icon></md-icon-button>
@@ -441,7 +457,7 @@ function showNewFolder(){
 
 function closePreview(){document.getElementById('previewOverlay').classList.remove('show');document.getElementById('previewContent').innerHTML=''}
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('uploadModal');closeModal('folderModal');closeModal('renameModal');closePreview()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('uploadModal');closeModal('folderModal');closeModal('renameModal');closeModal('shareModal');closePreview()}});
 
 // Track single file downloads in transfer panel (don't block native link)
 document.addEventListener('click', function(e){
@@ -463,6 +479,7 @@ document.addEventListener('click', function(e){
   const name = btn.dataset.name;
   if(act === 'rename') showRename(name);
   else if(act === 'preview') previewFile(name);
+  else if(act === 'share') shareLink(name);
   else if(act === 'move') setClipboard(name, 'move');
   else if(act === 'copy') setClipboard(name, 'copy');
   else if(act === 'delete') deleteItem(name);
@@ -752,6 +769,40 @@ async function previewFile(name){
     }
   }
   overlay.classList.add('show');
+}
+
+// Share direct link
+function shareLink(name){
+  const url = location.origin + currentPath + encodeURIComponent(name);
+  document.getElementById('shareFileName').textContent = name;
+  document.getElementById('shareLinkField').value = url;
+  showDialog('shareModal');
+}
+async function copyShareLink(){
+  const url = document.getElementById('shareLinkField').value;
+  let ok = false;
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      ok = true;
+    }
+  }catch(e){}
+  if(!ok){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand('copy');
+      ta.remove();
+    }catch(e){}
+  }
+  showToast(ok ? '直链已复制到剪贴板' : '复制失败，请手动复制', ok ? 'success' : 'info');
+}
+function openShareLink(){
+  window.open(document.getElementById('shareLinkField').value, '_blank');
 }
 
 // Rename
