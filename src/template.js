@@ -346,7 +346,7 @@ md-outlined-text-field{width:100%}
 /* Directory tree */
 .tree-container{padding:0 4px}
 .tree-node{user-select:none}
-.tree-row{display:flex;align-items:center;gap:1px;padding:1px 8px 1px 0;font-size:13px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .1s;border-radius:3px;text-decoration:none;white-space:nowrap;margin:0;line-height:22px;width:fit-content}
+.tree-row{display:flex;align-items:center;gap:1px;padding:1px 8px;font-size:13px;color:var(--md-sys-color-on-surface);cursor:pointer;transition:background .1s;border-radius:3px;text-decoration:none;white-space:nowrap;margin:0;line-height:22px;width:fit-content}
 .tree-row:hover{background:color-mix(in srgb,var(--md-sys-color-on-surface) 8%,transparent)}
 .tree-row.active{background:color-mix(in srgb,var(--md-sys-color-primary) 10%,transparent);color:var(--md-sys-color-primary);font-weight:500}
 .tree-row.active .tree-icon md-icon{color:var(--md-sys-color-primary)}
@@ -1345,7 +1345,8 @@ function buildTreeNode(name,parentPath,depth,currentPathParts){
   var row=document.createElement('a');
   row.className='tree-row'+(isCurrentPath&&testParts.length===currentPathParts.length?' active':'');
   row.href=fullPath;
-  row.style.paddingLeft=(indent+8)+'px';
+  row.draggable=false;
+  row.style.marginLeft=indent+'px';
   row.innerHTML='<span class="tree-chevron empty"><md-icon>chevron_right</md-icon></span>'+
     '<span class="tree-icon"><md-icon>folder</md-icon></span>'+
     '<span class="tree-label">'+esc(name)+'</span>';
