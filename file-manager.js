@@ -97,21 +97,24 @@ function formatSize(bytes){
 }
 
 function getIcon(name, isDir){
-  if(isDir) return '📁';
+  if(isDir) return '<i data-lucide="folder" class="fic fic-blue"></i>';
   const ext = path.extname(name).toLowerCase();
   const map = {
-    '.jpg':'🖼️','.jpeg':'🖼️','.png':'🖼️','.gif':'🖼️','.webp':'🖼️','.svg':'🖼️','.bmp':'🖼️',
-    '.mp4':'🎬','.avi':'🎬','.mkv':'🎬','.mov':'🎬','.wmv':'🎬',
-    '.mp3':'🎵','.wav':'🎵','.flac':'🎵','.aac':'🎵','.ogg':'🎵',
-    '.pdf':'📕','.doc':'📘','.docx':'📘','.xls':'📗','.xlsx':'📗','.ppt':'📙','.pptx':'📙',
-    '.zip':'📦','.rar':'📦','.7z':'📦','.tar':'📦','.gz':'📦',
-    '.html':'🌐','.css':'🎨','.js':'⚡','.ts':'⚡','.json':'📋','.xml':'📋',
-    '.py':'🐍','.java':'☕','.go':'🔵','.rs':'🦀','.c':'⚙️','.cpp':'⚙️',
-    '.txt':'📝','.md':'📝','.log':'📝',
-    '.exe':'⚡','.sh':'⚡','.bat':'⚡',
-    '.csv':'📊','.yaml':'📋','.yml':'📋',
+    '.jpg':['image','green'],'.jpeg':['image','green'],'.png':['image','green'],'.gif':['image','green'],'.webp':['image','green'],'.svg':['image','green'],'.bmp':['image','green'],
+    '.mp4':['film','violet'],'.avi':['film','violet'],'.mkv':['film','violet'],'.mov':['film','violet'],'.wmv':['film','violet'],
+    '.mp3':['music','rose'],'.wav':['music','rose'],'.flac':['music','rose'],'.aac':['music','rose'],'.ogg':['music','rose'],
+    '.pdf':['file-text','rose'],'.doc':['file-text','blue'],'.docx':['file-text','blue'],
+    '.xls':['file-spreadsheet','green'],'.xlsx':['file-spreadsheet','green'],'.csv':['file-spreadsheet','green'],
+    '.ppt':['presentation','amber'],'.pptx':['presentation','amber'],
+    '.zip':['file-archive','amber'],'.rar':['file-archive','amber'],'.7z':['file-archive','amber'],'.tar':['file-archive','amber'],'.gz':['file-archive','amber'],
+    '.html':['file-code','amber'],'.css':['file-code','blue'],'.js':['file-code','amber'],'.ts':['file-code','blue'],
+    '.json':['file-code','cyan'],'.xml':['file-code','cyan'],'.yaml':['file-code','cyan'],'.yml':['file-code','cyan'],
+    '.py':['file-code','blue'],'.java':['file-code','rose'],'.go':['file-code','cyan'],'.rs':['file-code','amber'],'.c':['file-code','blue'],'.cpp':['file-code','blue'],
+    '.txt':['file-text','blue'],'.md':['file-text','blue'],'.log':['file-text',''],
+    '.exe':['terminal',''],'.sh':['terminal',''],'.bat':['terminal',''],
   };
-  return map[ext] || '📄';
+  const m = map[ext] || ['file',''];
+  return '<i data-lucide="'+m[0]+'" class="fic'+(m[1]?' fic-'+m[1]:'')+'"></i>';
 }
 
 function isTextFile(ext){
@@ -144,15 +147,15 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs){
     return url;
   }
   function sortIcon(field){
-    if(field !== sortField) return '<span class="sort-icon">▲</span>';
-    return '<span class="sort-icon">' + (sortDir === 'asc' ? '▲' : '▼') + '</span>';
+    if(field !== sortField) return '<span class="sort-icon"><i data-lucide="chevrons-up-down"></i></span>';
+    return '<span class="sort-icon"><i data-lucide="' + (sortDir === 'asc' ? 'chevron-up' : 'chevron-down') + '"></i></span>';
   }
   function sortClass(field){
     return field === sortField ? ' sort-active' : '';
   }
 
   const breadcrumbs = rp.split('/').filter(Boolean);
-  let breadcrumbHtml = '<a href="/" class="breadcrumb-item">🏠 根目录</a>';
+  let breadcrumbHtml = '<a href="/" class="breadcrumb-item"><i data-lucide="house"></i> 根目录</a>';
   const cumParts = [];
   for(const b of breadcrumbs){
     cumParts.push(b);
@@ -177,8 +180,8 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs){
     const size = i.isDir ? '-' : formatSize(i.size);
     const mtime = i.mtime ? new Date(i.mtime).toLocaleString('zh-CN') : '-';
     const encodedName = encodeURIComponent(i.name);
-    const dlBtn = i.isDir ? '' : '<a href="'+encodedName+'?download=1" class="btn btn-sm" title="下载">⬇️</a>';
-    const previewBtn = i.isDir ? '' : '<button class="btn btn-sm act-btn" data-act="preview" data-name="'+esc(i.name)+'" title="预览">👁️</button>';
+    const dlBtn = i.isDir ? '' : '<a href="'+encodedName+'?download=1" class="btn btn-sm" title="下载"><i data-lucide="download"></i></a>';
+    const previewBtn = i.isDir ? '' : '<button class="btn btn-sm act-btn" data-act="preview" data-name="'+esc(i.name)+'" title="预览"><i data-lucide="eye"></i></button>';
     const dn = esc(i.name);
     return '<tr class="file-row" data-name="'+dn+'">'+
       '<td class="col-check"><input type="checkbox" class="row-cb" data-name="'+dn+'"></td>'+
@@ -187,14 +190,14 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs){
       '<td class="col-size file-size">'+size+'</td>'+
       '<td class="col-time file-time">'+mtime+'</td>'+
       '<td class="col-actions file-actions">'+previewBtn+dlBtn+
-        '<button class="btn btn-sm act-btn" data-act="rename" data-name="'+dn+'" title="重命名">✏️</button>'+
-        '<button class="btn btn-sm act-btn" data-act="move" data-name="'+dn+'" title="移动">📦</button>'+
-        '<button class="btn btn-sm act-btn" data-act="copy" data-name="'+dn+'" title="复制">📋</button>'+
-        '<button class="btn btn-sm btn-danger act-btn" data-act="delete" data-name="'+dn+'">🗑️</button></td>'+
+        '<button class="btn btn-sm act-btn" data-act="rename" data-name="'+dn+'" title="重命名"><i data-lucide="pencil"></i></button>'+
+        '<button class="btn btn-sm act-btn" data-act="move" data-name="'+dn+'" title="移动"><i data-lucide="scissors"></i></button>'+
+        '<button class="btn btn-sm act-btn" data-act="copy" data-name="'+dn+'" title="复制"><i data-lucide="copy"></i></button>'+
+        '<button class="btn btn-sm btn-danger act-btn" data-act="delete" data-name="'+dn+'" title="删除"><i data-lucide="trash-2"></i></button></td>'+
       '</tr>';
   }).join('');
 
-  const emptyHtml = list.length === 0 ? '<div class="empty">📂 空目录，上传文件或新建文件夹开始使用</div>' : '';
+  const emptyHtml = list.length === 0 ? '<div class="empty"><i data-lucide="folder-open"></i>空目录，上传文件或新建文件夹开始使用</div>' : '';
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -224,6 +227,7 @@ tailwind.config={darkMode:'media',theme:{extend:{
   fontFamily:{sans:['Inter','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif']}
 }}};
 </script>
+<script src="https://unpkg.com/lucide@latest"></script>
 <style type="text/tailwindcss">
 @layer base{
 :root{
@@ -273,7 +277,7 @@ button,input,a{font:inherit}
 .header h1{@apply text-base font-semibold tracking-tight whitespace-nowrap}
 .subtitle{@apply text-xs text-muted-foreground max-w-[220px] truncate}
 .breadcrumb{@apply flex items-center flex-wrap gap-1 min-w-0}
-.breadcrumb-item{@apply text-[13px] text-muted-foreground no-underline px-2 py-1 rounded-md transition-colors}
+.breadcrumb-item{@apply inline-flex items-center gap-1 text-[13px] text-muted-foreground no-underline px-2 py-1 rounded-md transition-colors}
 .breadcrumb-item:hover{@apply text-foreground bg-secondary}
 .breadcrumb-sep{@apply text-muted-foreground/50 text-xs}
 .header-stats{@apply flex items-center gap-2 flex-wrap justify-end}
@@ -306,11 +310,27 @@ tr:last-child td{@apply border-b-0}
 .file-size,.file-time{@apply text-muted-foreground text-xs whitespace-nowrap}
 .file-actions{@apply flex gap-1.5 whitespace-nowrap justify-end}
 .empty{@apply text-center py-16 px-5 text-muted-foreground text-[15px]}
+.lucide{width:16px;height:16px;stroke-width:1.75;flex-shrink:0;display:inline-block;vertical-align:-0.14em}
+.brand-mark .lucide{width:19px;height:19px;color:#fff}
+.col-icon .lucide,.file-icon .lucide{width:18px;height:18px}
+.btn-sm .lucide{width:15px;height:15px}
+.preview-close .lucide{width:20px;height:20px}
+.sort-icon{display:inline-flex;align-items:center}
+.sort-icon .lucide{width:13px;height:13px}
+.empty .lucide{width:42px;height:42px;display:block;margin:0 auto 12px;opacity:.55;stroke-width:1.4}
+.fic{color:hsl(var(--muted-foreground))}
+.fic-blue{color:hsl(var(--accent))}
+.fic-green{color:hsl(158 64% 42%)}
+.fic-violet{color:hsl(var(--violet))}
+.fic-amber{color:hsl(38 92% 50%)}
+.fic-rose{color:hsl(345 80% 58%)}
+.fic-cyan{color:hsl(190 85% 45%)}
 .modal-overlay{@apply fixed inset-0 z-[200] flex justify-center items-center p-4 invisible opacity-0 transition-all duration-200;background:hsl(222 47% 4%/0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none}
 .modal-overlay.show{@apply visible opacity-100;pointer-events:auto}
 .modal{@apply rounded-xl border p-6 min-w-[400px] max-w-[520px] w-[90%] transition-all duration-200;background:hsl(var(--card));box-shadow:0 24px 60px hsl(222 47% 4%/0.4);transform:translateY(10px) scale(.97)}
 .modal-overlay.show .modal{transform:none}
-.modal h2{@apply text-lg mb-4 font-semibold tracking-tight}
+.modal h2{@apply flex items-center gap-2 text-lg mb-4 font-semibold tracking-tight}
+.modal h2 .lucide{width:18px;height:18px;color:hsl(var(--accent))}
 .modal input[type=text]{@apply w-full px-3 py-2.5 rounded-lg border text-sm mb-4 outline-none bg-background text-foreground transition-all}
 .modal input[type=text]:focus{@apply ring-2 ring-ring;border-color:hsl(var(--ring))}
 .modal-actions{@apply flex gap-2 justify-end}
@@ -318,7 +338,7 @@ tr:last-child td{@apply border-b-0}
 .upload-area:hover,.upload-area.dragover{border-color:hsl(var(--accent));background:hsl(var(--accent)/0.08)}
 .upload-area.dragover{@apply scale-[1.01]}
 .upload-area p{@apply text-foreground mt-2 text-sm font-medium}
-.upload-area .icon{@apply text-5xl}
+.upload-area .icon .lucide{width:46px;height:46px;stroke-width:1.4;color:hsl(var(--accent))}
 .drop-zone-hint{@apply text-xs text-muted-foreground mt-1}
 #uploadProgress>div{@apply rounded-full overflow-hidden;background:hsl(var(--secondary))!important}
 #progressBar{background:linear-gradient(90deg,hsl(var(--accent)),hsl(var(--violet)))!important;border-radius:9999px}
@@ -395,7 +415,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <div class="header">
   <div class="header-main">
     <div class="brand">
-      <div class="brand-mark">▣</div>
+      <div class="brand-mark"><i data-lucide="hard-drive"></i></div>
       <div class="brand-copy">
         <h1>文件管理</h1>
         <div class="subtitle">${esc(currentLabel)}</div>
@@ -408,10 +428,10 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <div class="container">
   ${msgHtml}
   <div class="toolbar">
-    <button class="btn btn-primary" onclick="showUpload()">📤 上传文件</button>
-    <button class="btn" onclick="showNewFolder()">📁 新建文件夹</button>
-    <button class="btn" onclick="location.reload()">🔄 刷新</button>
-    <a href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle${groupDirs?' active':''}" title="切换目录优先显示">📁 目录优先</a>
+    <button class="btn btn-primary" onclick="showUpload()"><i data-lucide="upload"></i> 上传文件</button>
+    <button class="btn" onclick="showNewFolder()"><i data-lucide="folder-plus"></i> 新建文件夹</button>
+    <button class="btn" onclick="location.reload()"><i data-lucide="refresh-cw"></i> 刷新</button>
+    <a href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle${groupDirs?' active':''}" title="切换目录优先显示"><i data-lucide="folder-tree"></i> 目录优先</a>
     <span id="toolbarPaste"></span>
   </div>
   <div id="batchBar"></div>
@@ -420,7 +440,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
     <table>
       <thead><tr><th class="col-check" style="width:36px"><input type="checkbox" id="selectAll"></th><th class="col-icon" style="width:40px"></th><th class="col-name sortable${sortClass('name')}"><a href="${sortUrl('name')}">名称${sortIcon('name')}</a></th><th class="col-size sortable${sortClass('size')}" style="width:80px"><a href="${sortUrl('size')}">大小${sortIcon('size')}</a></th><th class="col-time sortable${sortClass('mtime')}" style="width:160px"><a href="${sortUrl('mtime')}">修改时间${sortIcon('mtime')}</a></th><th class="col-actions" style="width:220px">操作</th></tr></thead>
       <tbody>
-        ${rp !== '/' ? '<tr class="file-row"><td class="col-check"></td><td class="col-icon">⬆️</td><td class="col-name"><a href="../">返回上级</a></td><td class="col-size">-</td><td class="col-time">-</td><td class="col-actions"></td></tr>' : ''}
+        ${rp !== '/' ? '<tr class="file-row"><td class="col-check"></td><td class="col-icon"><i data-lucide="corner-left-up" class="fic"></i></td><td class="col-name"><a href="../">返回上级</a></td><td class="col-size">-</td><td class="col-time">-</td><td class="col-actions"></td></tr>' : ''}
         ${listHtml}
       </tbody>
     </table>
@@ -431,9 +451,9 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <!-- Upload Modal -->
 <div class="modal-overlay" id="uploadModal">
   <div class="modal">
-    <h2>📤 上传文件</h2>
+    <h2><i data-lucide="upload"></i> 上传文件</h2>
     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-      <div class="icon">📁</div>
+      <div class="icon"><i data-lucide="cloud-upload"></i></div>
       <p>点击选择文件，或拖拽文件到这里</p>
       <div class="drop-zone-hint">支持多文件上传</div>
     </div>
@@ -453,7 +473,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <!-- New Folder Modal -->
 <div class="modal-overlay" id="folderModal">
   <div class="modal">
-    <h2>📁 新建文件夹</h2>
+    <h2><i data-lucide="folder-plus"></i> 新建文件夹</h2>
     <input type="text" id="folderName" placeholder="输入文件夹名称">
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('folderModal')">取消</button>
@@ -465,7 +485,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <!-- Rename Modal -->
 <div class="modal-overlay" id="renameModal">
   <div class="modal">
-    <h2>✏️ 重命名</h2>
+    <h2><i data-lucide="pencil"></i> 重命名</h2>
     <div id="renameOldName" style="font-size:13px;color:#999;margin-bottom:12px;word-break:break-all"></div>
     <input type="text" id="renameNewName" placeholder="输入新名称">
     <div class="modal-actions">
@@ -477,7 +497,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 
 <!-- Preview Modal -->
 <div class="preview-overlay" id="previewOverlay">
-  <button class="preview-close" onclick="closePreview()">✕</button>
+  <button class="preview-close" onclick="closePreview()"><i data-lucide="x"></i></button>
   <div id="previewContent"></div>
   <div class="preview-name" id="previewName"></div>
 </div>
@@ -485,6 +505,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <script>
 const currentPath = location.pathname;
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function refreshIcons(){if(window.lucide)lucide.createIcons();}
 
 function showUpload(){document.getElementById('uploadModal').classList.add('show')}
 function showNewFolder(){document.getElementById('folderModal').classList.add('show');document.getElementById('folderName').focus()}
@@ -529,12 +550,13 @@ function updateBatchBar(){
   var n = selectedItems.size;
   bar.innerHTML = '<div class="batch-bar">'+
     '<span>已选 <b>'+n+'</b> 项</span>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-download">📦 打包下载</button>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-copy">📋 批量复制</button>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-move">✂️ 批量移动</button>'+
-    '<button class="btn btn-sm btn-danger act-btn" data-act="batch-delete">🗑️ 批量删除</button>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-clear" style="margin-left:auto">✕ 取消选择</button>'+
+    '<button class="btn btn-sm act-btn" data-act="batch-download"><i data-lucide="download"></i> 打包下载</button>'+
+    '<button class="btn btn-sm act-btn" data-act="batch-copy"><i data-lucide="copy"></i> 批量复制</button>'+
+    '<button class="btn btn-sm act-btn" data-act="batch-move"><i data-lucide="scissors"></i> 批量移动</button>'+
+    '<button class="btn btn-sm btn-danger act-btn" data-act="batch-delete"><i data-lucide="trash-2"></i> 批量删除</button>'+
+    '<button class="btn btn-sm act-btn" data-act="batch-clear" style="margin-left:auto"><i data-lucide="x"></i> 取消选择</button>'+
     '</div>';
+  refreshIcons();
 }
 
 function refreshSelection(){
@@ -814,7 +836,7 @@ function renderClipboard(){
   }
   var isMove = action === 'move';
   var label = isMove ? '剪切' : '复制';
-  var icon = isMove ? '✂️' : '📋';
+  var icon = isMove ? '<i data-lucide="scissors"></i>' : '<i data-lucide="copy"></i>';
   var cls = isMove ? 'move' : 'copy';
   // Check if batch (JSON array) or single
   var isBatch = name.startsWith('[');
@@ -838,15 +860,16 @@ function renderClipboard(){
   cancelBtn.className = 'btn btn-sm act-btn';
   cancelBtn.setAttribute('data-act', 'cancel-clip');
   cancelBtn.style.cssText = 'margin-left:auto;opacity:0.7';
-  cancelBtn.textContent = '✕ 取消';
+  cancelBtn.innerHTML = '<i data-lucide="x"></i> 取消';
   bar.querySelector('.clipboard-bar').appendChild(cancelBtn);
   // Paste button in toolbar
   toolbar.innerHTML = '';
   var pasteBtn = document.createElement('button');
   pasteBtn.className = 'btn btn-primary act-btn';
   pasteBtn.setAttribute('data-act', 'paste');
-  pasteBtn.textContent = '📌 粘贴到此处';
+  pasteBtn.innerHTML = '<i data-lucide="clipboard-paste"></i> 粘贴到此处';
   toolbar.appendChild(pasteBtn);
+  refreshIcons();
 }
 function getClipDir(){
   var src = sessionStorage.getItem('clip_src') || '';
@@ -908,9 +931,11 @@ async function doPaste(){
 // Initialize clipboard bar on page load
 window.addEventListener('load', function(){
   try{ renderClipboard(); }catch(e){ console.error('renderClipboard error:', e); }
+  refreshIcons();
 });
 // Also try immediately
 try{ renderClipboard(); }catch(e){}
+refreshIcons();
 </script>
 </body>
 </html>`;
