@@ -943,7 +943,12 @@ function updateTransferItem(id, updates) {
       break;
     }
   }
-  renderTransferPanel();
+  // If only progress/detail changed (no status change), do a lightweight DOM update
+  if ('status' in updates) {
+    renderTransferPanel();
+  } else {
+    renderTransferProgress(id);
+  }
 }
 function removeTransferItem(id) {
   transferItems = transferItems.filter(function(t) { return t.id !== id; });
@@ -957,25 +962,22 @@ function getTransferIcon(status) {
   if (status === 'error') return 'error';
   return 'radio_button_unchecked';
 }
-function renderTransferPanel() {
-  var body = document.getElementById('tpBody');
+function updateHeaderBar() {
   var countEl = document.getElementById('tpCount');
   var barEl = document.getElementById('tpBar');
   var infoEl = document.getElementById('tpInfo');
-  if (!body) return;
+  if (!countEl) return;
   var active = transferItems.filter(function(t) { return t.status === 'active' || t.status === 'waiting'; });
   var doneItems = transferItems.filter(function(t) { return t.status === 'done'; });
   var errorItems = transferItems.filter(function(t) { return t.status === 'error'; });
   countEl.textContent = active.length || transferItems.length;
 
-  // Update header progress bar
   if (barEl) {
     if (!transferItems.length) {
       barEl.className = 'tp-header-bar';
       barEl.style.width = '0';
     } else if (active.length) {
-      var totalProgress = 0;
-      var activeCount = 0;
+      var totalProgress = 0, activeCount = 0;
       transferItems.forEach(function(t) {
         if (t.status === 'active') { totalProgress += t.progress; activeCount++; }
         else if (t.status === 'waiting') { activeCount++; }
@@ -990,15 +992,10 @@ function renderTransferPanel() {
     }
   }
 
-  // Update header info text (visible when collapsed)
   if (infoEl) {
     if (active.length) {
       var current = transferItems.find(function(t) { return t.status === 'active'; });
-      if (current) {
-        infoEl.textContent = current.name + ' ' + Math.round(current.progress) + '%';
-      } else {
-        infoEl.textContent = active.length + ' 项等待中';
-      }
+      infoEl.textContent = current ? current.name + ' ' + Math.round(current.progress) + '%' : active.length + ' 项等待中';
     } else if (doneItems.length || errorItems.length) {
       var parts = [];
       if (doneItems.length) parts.push(doneItems.length + ' 完成');
@@ -1008,7 +1005,20 @@ function renderTransferPanel() {
       infoEl.textContent = '';
     }
   }
+}
 
+function buildItemHtml(t) {
+  var pct = t.status === 'active' ? ' (' + Math.round(t.progress) + '%)' : '';
+  var statusLabel = t.status === 'waiting' ? '等待中' : t.status === 'active' ? '传输中' + pct : t.status === 'done' ? '完成' : '失败';
+  var detail = t.detail || formatSize(t.size);
+  return '<div class="tp-item" data-tid="' + t.id + '"><div class="tp-item-icon ' + t.status + '"><md-icon>' + getTransferIcon(t.status) + '</md-icon></div>' +
+    '<div class="tp-item-info"><div class="tp-item-name">' + esc(t.name) + '</div><div class="tp-item-detail">' + esc(detail) + '</div></div>' +
+    '<div class="tp-item-status ' + t.status + '">' + statusLabel + '</div></div>';
+}
+
+function fullRenderBody() {
+  var body = document.getElementById('tpBody');
+  if (!body) return;
   if (!transferItems.length) {
     body.innerHTML = '<div class="tp-empty">暂无传输任务</div>';
     return;
@@ -1018,27 +1028,53 @@ function renderTransferPanel() {
   var html = '';
   if (uploads.length) {
     html += '<div class="tp-group-label">上传</div>';
-    uploads.forEach(function(t) {
-      var pct = t.status === 'active' ? ' (' + Math.round(t.progress) + '%)' : '';
-      var statusLabel = t.status === 'waiting' ? '等待中' : t.status === 'active' ? '传输中' + pct : t.status === 'done' ? '完成' : '失败';
-      var detail = t.detail || formatSize(t.size);
-      html += '<div class="tp-item"><div class="tp-item-icon ' + t.status + '"><md-icon>' + getTransferIcon(t.status) + '</md-icon></div>' +
-        '<div class="tp-item-info"><div class="tp-item-name">' + esc(t.name) + '</div><div class="tp-item-detail">' + esc(detail) + '</div></div>' +
-        '<div class="tp-item-status ' + t.status + '">' + statusLabel + '</div></div>';
-    });
+    uploads.forEach(function(t) { html += buildItemHtml(t); });
   }
   if (downloads.length) {
     html += '<div class="tp-group-label">下载</div>';
-    downloads.forEach(function(t) {
-      var pct = t.status === 'active' ? ' (' + Math.round(t.progress) + '%)' : '';
-      var statusLabel = t.status === 'waiting' ? '等待中' : t.status === 'active' ? '传输中' + pct : t.status === 'done' ? '完成' : '失败';
-      var detail = t.detail || formatSize(t.size);
-      html += '<div class="tp-item"><div class="tp-item-icon ' + t.status + '"><md-icon>' + getTransferIcon(t.status) + '</md-icon></div>' +
-        '<div class="tp-item-info"><div class="tp-item-name">' + esc(t.name) + '</div><div class="tp-item-detail">' + esc(detail) + '</div></div>' +
-        '<div class="tp-item-status ' + t.status + '">' + statusLabel + '</div></div>';
-    });
+    downloads.forEach(function(t) { html += buildItemHtml(t); });
   }
   body.innerHTML = html;
+}
+
+function updateItemDom(t) {
+  var el = document.querySelector('.tp-item[data-tid="' + t.id + '"]');
+  if (!el) return;
+  var iconEl = el.querySelector('.tp-item-icon');
+  var detailEl = el.querySelector('.tp-item-detail');
+  var statusEl = el.querySelector('.tp-item-status');
+  if (iconEl) {
+    iconEl.className = 'tp-item-icon ' + t.status;
+    // Only update icon text when status type changes (not on every progress tick)
+    var iconName = getTransferIcon(t.status);
+    if (iconEl.querySelector('md-icon') && iconEl.querySelector('md-icon').textContent !== iconName) {
+      iconEl.querySelector('md-icon').textContent = iconName;
+    }
+  }
+  if (detailEl) {
+    var detail = t.detail || formatSize(t.size);
+    if (detailEl.textContent !== detail) detailEl.textContent = detail;
+  }
+  if (statusEl) {
+    var pct = t.status === 'active' ? ' (' + Math.round(t.progress) + '%)' : '';
+    var statusLabel = t.status === 'waiting' ? '等待中' : t.status === 'active' ? '传输中' + pct : t.status === 'done' ? '完成' : '失败';
+    statusEl.className = 'tp-item-status ' + t.status;
+    if (statusEl.textContent !== statusLabel) statusEl.textContent = statusLabel;
+  }
+}
+
+function renderTransferPanel() {
+  updateHeaderBar();
+  fullRenderBody();
+}
+
+function renderTransferProgress(id) {
+  updateHeaderBar();
+  var item = null;
+  for (var i = 0; i < transferItems.length; i++) {
+    if (transferItems[i].id === id) { item = transferItems[i]; break; }
+  }
+  if (item) updateItemDom(item);
 }
 function showTransferPanel() {
   var p = document.getElementById('transferPanel');
