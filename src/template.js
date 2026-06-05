@@ -138,10 +138,14 @@ button,input,a{font:inherit}
 @layer components{
 .header{@apply sticky top-0 z-50 flex items-center justify-between gap-4 px-6 py-3 border-b;background:hsl(var(--card)/0.72);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px)}
 .header-main{@apply flex items-center gap-5 min-w-0}
-.brand{@apply flex items-center gap-2.5 shrink-0}
-.brand-mark{@apply grid place-items-center w-9 h-9 rounded-lg text-white text-lg;background:linear-gradient(135deg,hsl(var(--accent)),hsl(var(--violet)));box-shadow:0 8px 20px hsl(var(--accent)/0.35)}
+.brand{@apply flex items-center gap-3 shrink-0}
+.brand-mark{@apply relative grid place-items-center w-10 h-10 text-white overflow-hidden;isolation:isolate;border-radius:12px;background:linear-gradient(145deg,hsl(222 47% 11%) 0%,hsl(var(--accent)) 58%,hsl(var(--success)) 100%);box-shadow:0 10px 24px hsl(var(--accent)/0.22),inset 0 1px 0 rgba(255,255,255,0.28)}
+.brand-mark::before{content:"";position:absolute;inset:1px;border:1px solid rgba(255,255,255,0.24);border-radius:11px}
+.brand-mark::after{content:"";position:absolute;right:8px;top:8px;width:10px;height:10px;border-top:2px solid rgba(255,255,255,0.72);border-right:2px solid rgba(255,255,255,0.72);border-radius:1px}
+.brand-emblem{position:relative;z-index:1;font-size:19px;font-weight:800;line-height:1;letter-spacing:0;transform:translateY(-1px)}
+.brand-baseline{position:absolute;left:9px;bottom:9px;width:18px;height:3px;border-radius:9999px;background:rgba(255,255,255,0.6)}
 .brand-copy{@apply flex flex-col gap-px leading-none}
-.header h1{@apply text-base font-semibold tracking-tight whitespace-nowrap}
+.header h1{@apply text-base font-semibold whitespace-nowrap;letter-spacing:0}
 .subtitle{@apply text-xs text-muted-foreground max-w-[220px] truncate}
 .breadcrumb{@apply flex items-center flex-wrap gap-1 min-w-0}
 .breadcrumb-item{@apply inline-flex items-center gap-1 text-[13px] text-muted-foreground no-underline px-2 py-1 rounded-md transition-colors}
@@ -178,7 +182,6 @@ tr:last-child td{@apply border-b-0}
 .file-actions{@apply flex gap-1.5 whitespace-nowrap justify-end}
 .empty{@apply text-center py-16 px-5 text-muted-foreground text-[15px]}
 .lucide{width:16px;height:16px;stroke-width:1.75;flex-shrink:0;display:inline-block;vertical-align:-0.14em}
-.brand-mark .lucide{width:19px;height:19px;color:#fff}
 .col-icon .lucide,.file-icon .lucide{width:18px;height:18px}
 .btn-sm .lucide{width:15px;height:15px}
 .preview-close .lucide{width:20px;height:20px}
@@ -282,9 +285,9 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <div class="header">
   <div class="header-main">
     <div class="brand">
-      <div class="brand-mark"><i data-lucide="hard-drive"></i></div>
+      <div class="brand-mark" aria-hidden="true"><span class="brand-emblem">w</span><span class="brand-baseline"></span></div>
       <div class="brand-copy">
-        <h1>文件管理</h1>
+        <h1>winFM</h1>
         <div class="subtitle">${esc(currentLabel)}</div>
       </div>
     </div>
