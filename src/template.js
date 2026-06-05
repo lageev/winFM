@@ -497,7 +497,7 @@ function updateBatchBar(){
   var n = selectedItems.size;
   bar.innerHTML = '<div class="batch-bar">'+
     '<span>已选 <b>'+n+'</b> 项</span>'+
-    '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-download"><md-icon slot="icon">download</md-icon>打包下载</md-filled-tonal-button>'+
+    '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-download"><md-icon slot="icon">download</md-icon>全部下载</md-filled-tonal-button>'+
     '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-copy"><md-icon slot="icon">content_copy</md-icon>批量复制</md-filled-tonal-button>'+
     '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-move"><md-icon slot="icon">content_cut</md-icon>批量移动</md-filled-tonal-button>'+
     '<md-outlined-button type="button" class="act-btn" data-act="batch-delete"><md-icon slot="icon">delete</md-icon>批量删除</md-outlined-button>'+
@@ -561,37 +561,45 @@ document.addEventListener('change', function(e){
 async function batchDownload(){
   var names = Array.from(selectedItems);
   if(!names.length) return;
-  var dirName = currentPath.replace(/[/]$/,'').split('/').pop() || 'files';
-  try{ dirName = decodeURIComponent(dirName) || 'files'; }catch(e){}
-  var zipName = dirName + '.zip';
 
-  // Add to transfer panel
-  var tpId = addTransferItem({ name: zipName, size: 0, type: 'download', detail: '打包 ' + names.length + ' 项...' });
-  updateTransferItem(tpId, { status: 'active', detail: '正在打包 ' + names.length + ' 项...' });
-  showToast('正在打包 '+names.length+' 项，请稍候...', 'info');
-  try{
-    var r = await fetch(currentPath + '?action=batchdownload&names=' + encodeURIComponent(JSON.stringify(names)), {method:'POST'});
-    if(!r.ok){ var t=await r.text(); showToast('打包失败: '+t,'info'); updateTransferItem(tpId, { status: 'error', detail: '打包失败' }); setTimeout(function(){ removeTransferItem(tpId); }, 5000); return; }
-    updateTransferItem(tpId, { detail: '正在下载...' });
-    var blob = await r.blob();
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = zipName;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 60000);
-    updateTransferItem(tpId, { status: 'done', detail: formatSize(blob.size) + ' · 完成' });
-    showToast('打包下载完成','success');
-    setTimeout(function(){ removeTransferItem(tpId); }, 5000);
-  }catch(e){
-    showToast('下载失败','info');
-    updateTransferItem(tpId, { status: 'error', detail: '下载失败' });
-    setTimeout(function(){ removeTransferItem(tpId); }, 5000);
+  var tpIds = [];
+  for(var i=0;i<names.length;i++){
+    tpIds.push(addTransferItem({ name: names[i], size: 0, type: 'download' }));
   }
+  showToast('开始下载 '+names.length+' 项...', 'info');
+
+  var okCount = 0, failCount = 0;
+  for(var i=0;i<names.length;i++){
+    var name = names[i];
+    var idx = i+1;
+    updateTransferItem(tpIds[i], { status: 'active', detail: '下载中 ' + idx + '/' + names.length });
+    try{
+      var r = await fetch(currentPath + encodeURIComponent(name) + '?download=1');
+      if(!r.ok){ throw new Error('HTTP ' + r.status); }
+      var blob = await r.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      (function(u){
+        setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); }, 60000);
+      })(url);
+      updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: formatSize(blob.size) + ' · 完成' });
+      okCount++;
+    }catch(e){
+      updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '下载失败' });
+      failCount++;
+    }
+  }
+
+  if(failCount === 0){
+    showToast('全部下载完成，共 '+okCount+' 个文件', 'success');
+  } else {
+    showToast('下载结束：成功 '+okCount+'，失败 '+failCount, 'info');
+  }
+  setTimeout(function(){ tpIds.forEach(function(id){ removeTransferItem(id); }); }, 5000);
 }
 
 async function batchDelete(){
