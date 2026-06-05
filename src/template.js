@@ -252,6 +252,58 @@ md-outlined-text-field{width:100%}
 #progressBar{--md-linear-progress-track-height:8px;--md-linear-progress-active-indicator-height:8px}
 #progressText{font-size:13px;color:var(--md-sys-color-on-surface-variant);text-align:center}
 
+/* Upload queue inside dialog */
+.upload-queue{max-height:240px;overflow-y:auto;border:1px solid var(--md-sys-color-outline-variant);border-radius:12px;background:var(--md-sys-color-surface-container-lowest)}
+.upload-queue:empty{display:none}
+.uq-item{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13px;border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.uq-item:last-child{border-bottom:0}
+.uq-icon{flex-shrink:0;width:20px;text-align:center}
+.uq-icon md-icon{font-size:18px}
+.uq-icon.waiting md-icon{color:var(--md-sys-color-outline)}
+.uq-icon.uploading md-icon{color:var(--md-sys-color-primary);animation:spin 1s linear infinite}
+.uq-icon.done md-icon{color:#3FA66A}
+.uq-icon.error md-icon{color:var(--md-sys-color-error)}
+.uq-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.uq-size{flex-shrink:0;color:var(--md-sys-color-on-surface-variant);font-size:12px;min-width:56px;text-align:right}
+.uq-status{flex-shrink:0;font-size:12px;min-width:48px;text-align:right}
+.uq-status.waiting{color:var(--md-sys-color-outline)}
+.uq-status.uploading{color:var(--md-sys-color-primary)}
+.uq-status.done{color:#3FA66A}
+.uq-status.error{color:var(--md-sys-color-error)}
+.uq-bar{position:absolute;bottom:0;left:0;height:2px;background:var(--md-sys-color-primary);transition:width .2s;border-radius:0 0 0 0}
+.uq-item{position:relative}
+
+/* Floating transfer panel */
+.transfer-panel{position:fixed;bottom:20px;right:20px;z-index:200;width:340px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
+.transfer-panel.hidden{opacity:0;pointer-events:none;transform:scale(.92)}
+.tp-header{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;background:var(--md-sys-color-surface-container);border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.tp-header:hover{background:var(--md-sys-color-surface-container-high)}
+.tp-header md-icon{font-size:20px;color:var(--md-sys-color-primary)}
+.tp-title{flex:1;font-size:14px;font-weight:500}
+.tp-count{font-size:12px;color:var(--md-sys-color-on-surface-variant);background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);padding:2px 8px;border-radius:99px}
+.tp-toggle md-icon{font-size:20px;color:var(--md-sys-color-on-surface-variant);transition:transform .2s}
+.tp-toggle.collapsed md-icon{transform:rotate(180deg)}
+.tp-body{max-height:280px;overflow-y:auto}
+.tp-body.collapsed{display:none}
+.tp-empty{padding:20px;text-align:center;font-size:13px;color:var(--md-sys-color-on-surface-variant)}
+.tp-group-label{font-size:11px;font-weight:500;letter-spacing:.04em;color:var(--md-sys-color-on-surface-variant);padding:8px 14px 4px;text-transform:uppercase}
+.tp-item{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:13px;border-bottom:1px solid color-mix(in srgb,var(--md-sys-color-outline-variant) 50%,transparent)}
+.tp-item:last-child{border-bottom:0}
+.tp-item-icon{flex-shrink:0;width:20px;text-align:center}
+.tp-item-icon md-icon{font-size:18px}
+.tp-item-icon.waiting md-icon{color:var(--md-sys-color-outline)}
+.tp-item-icon.active md-icon{color:var(--md-sys-color-primary);animation:spin 1s linear infinite}
+.tp-item-icon.done md-icon{color:#3FA66A}
+.tp-item-icon.error md-icon{color:var(--md-sys-color-error)}
+.tp-item-info{flex:1;min-width:0}
+.tp-item-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.tp-item-detail{font-size:11px;color:var(--md-sys-color-on-surface-variant);margin-top:1px}
+.tp-item-status{flex-shrink:0;font-size:12px}
+.tp-item-status.done{color:#3FA66A}
+.tp-item-status.error{color:var(--md-sys-color-error)}
+
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
 .preview-overlay{position:fixed;inset:0;z-index:300;display:flex;justify-content:center;align-items:center;flex-direction:column;padding:24px;visibility:hidden;opacity:0;transition:opacity .2s;background:color-mix(in srgb,var(--md-sys-color-scrim) 78%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:none}
 .preview-overlay.show{visibility:visible;opacity:1;pointer-events:auto}
 .preview-overlay img,.preview-overlay video,.preview-overlay audio{border-radius:16px;max-width:min(92vw,1200px);max-height:80vh;box-shadow:0 24px 60px rgba(0,0,0,.5)}
@@ -338,6 +390,7 @@ md-outlined-text-field{width:100%}
     <div id="uploadProgress" style="display:none">
       <md-linear-progress id="progressBar" value="0" aria-label="上传进度"></md-linear-progress>
       <div id="progressText"></div>
+      <div id="uploadQueue" class="upload-queue"></div>
     </div>
   </div>
   <div slot="actions" class="modal-actions">
@@ -407,6 +460,26 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('uploadM
 
 // Event delegation for action buttons
 document.addEventListener('click', function(e){
+  // Intercept single file download links
+  var dlLink = e.target.closest('a[href$="?download=1"]');
+  if(dlLink && dlLink.closest('.file-row')){
+    e.preventDefault();
+    var href = dlLink.getAttribute('href');
+    var name = decodeURIComponent(href.replace('?download=1',''));
+    var tpId = addTransferItem({ name: name, size: 0, type: 'download', detail: '下载中...' });
+    updateTransferItem(tpId, { status: 'active' });
+    // Trigger actual download
+    var a = document.createElement('a');
+    a.href = href;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); }, 1000);
+    updateTransferItem(tpId, { status: 'done', detail: '完成' });
+    setTimeout(function(){ removeTransferItem(tpId); }, 3000);
+    return;
+  }
+
   const btn = e.target.closest('.act-btn');
   if(!btn) return;
   const act = btn.dataset.act;
@@ -504,25 +577,37 @@ document.addEventListener('change', function(e){
 async function batchDownload(){
   var names = Array.from(selectedItems);
   if(!names.length) return;
+  var dirName = currentPath.replace(/[/]$/,'').split('/').pop() || 'files';
+  try{ dirName = decodeURIComponent(dirName) || 'files'; }catch(e){}
+  var zipName = dirName + '.zip';
+
+  // Add to transfer panel
+  var tpId = addTransferItem({ name: zipName, size: 0, type: 'download', detail: '打包 ' + names.length + ' 项...' });
+  updateTransferItem(tpId, { status: 'active', detail: '正在打包 ' + names.length + ' 项...' });
   showToast('正在打包 '+names.length+' 项，请稍候...', 'info');
   try{
     var r = await fetch(currentPath + '?action=batchdownload&names=' + encodeURIComponent(JSON.stringify(names)), {method:'POST'});
-    if(!r.ok){ var t=await r.text(); showToast('打包失败: '+t,'info'); return; }
+    if(!r.ok){ var t=await r.text(); showToast('打包失败: '+t,'info'); updateTransferItem(tpId, { status: 'error', detail: '打包失败' }); setTimeout(function(){ removeTransferItem(tpId); }, 5000); return; }
+    updateTransferItem(tpId, { detail: '正在下载...' });
     var blob = await r.blob();
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    var dirName = currentPath.replace(/[/]$/,'').split('/').pop() || 'files';
-    try{ dirName = decodeURIComponent(dirName) || 'files'; }catch(e){}
-    a.download = dirName + '.zip';
+    a.download = zipName;
     document.body.appendChild(a);
     a.click();
     setTimeout(function(){
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 60000);
+    updateTransferItem(tpId, { status: 'done', detail: formatSize(blob.size) + ' · 完成' });
     showToast('打包下载完成','success');
-  }catch(e){ showToast('下载失败','info'); }
+    setTimeout(function(){ removeTransferItem(tpId); }, 5000);
+  }catch(e){
+    showToast('下载失败','info');
+    updateTransferItem(tpId, { status: 'error', detail: '下载失败' });
+    setTimeout(function(){ removeTransferItem(tpId); }, 5000);
+  }
 }
 
 async function batchDelete(){
@@ -605,9 +690,23 @@ async function handleFiles(files){
   var totalSize = 0;
   for(var i=0;i<files.length;i++) totalSize += files[i].size;
   var uploadedSize = 0;
+  var statuses = [];
+  for(var i=0;i<files.length;i++) statuses.push('waiting');
+  renderUploadQueue(files, statuses);
+
+  // Add to floating transfer panel
+  var tpIds = [];
+  for(var i=0;i<files.length;i++){
+    tpIds.push(addTransferItem({ name: files[i].name, size: files[i].size, type: 'upload' }));
+  }
+
+  var okCount = 0, failCount = 0;
   for(var i=0;i<files.length;i++){
     var file = files[i];
     var idx = i+1;
+    statuses[i] = 'uploading';
+    renderUploadQueue(files, statuses);
+    updateTransferItem(tpIds[i], { status: 'active', detail: formatSize(file.size) });
     text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name;
     bar.value = totalSize ? uploadedSize/totalSize : i/files.length;
     try{
@@ -615,17 +714,33 @@ async function handleFiles(files){
         var pct = totalSize ? Math.round((uploadedSize + loaded) / totalSize * 100) : Math.round(idx/files.length*100);
         bar.value = pct / 100;
         text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name + '  ' + formatSize(loaded) + '/' + formatSize(total);
+        updateTransferItem(tpIds[i], { progress: total ? loaded/total*100 : 0, detail: formatSize(loaded) + '/' + formatSize(total) });
       });
       uploadedSize += file.size;
-      if(!totalSize) bar.value = idx/files.length;
+      statuses[i] = 'done';
+      renderUploadQueue(files, statuses);
+      updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: '完成' });
+      okCount++;
     }catch(e){
-      text.textContent = '上传失败: ' + file.name + (e.message ? ' (' + e.message + ')' : '');
-      return;
+      statuses[i] = 'error';
+      renderUploadQueue(files, statuses);
+      updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '上传失败' });
+      failCount++;
     }
   }
   bar.value = 1;
-  text.textContent = '上传完成！共 ' + files.length + ' 个文件';
-  setTimeout(function(){ location.reload(); }, 800);
+  if(failCount === 0){
+    text.textContent = '上传完成！共 ' + files.length + ' 个文件';
+    showToast('上传完成，共 ' + okCount + ' 个文件', 'success');
+  } else {
+    text.textContent = '上传结束：成功 ' + okCount + '，失败 ' + failCount;
+    showToast('上传结束：成功 ' + okCount + '，失败 ' + failCount, 'info');
+  }
+  // Auto-remove completed items after 5s
+  setTimeout(function(){
+    tpIds.forEach(function(id){ removeTransferItem(id); });
+  }, 5000);
+  setTimeout(function(){ location.reload(); }, failCount > 0 ? 3000 : 800);
 }
 
 async function createFolder(){
@@ -826,6 +941,118 @@ async function doPaste(){
     }catch(e){showToast(label+'失败', 'info')}
   }
 }
+// ── Transfer Queue Manager ──
+var transferItems = [];
+var transferIdCounter = 0;
+var tpCollapsed = false;
+
+function addTransferItem(opts) {
+  var id = ++transferIdCounter;
+  var item = {
+    id: id,
+    name: opts.name || '',
+    size: opts.size || 0,
+    type: opts.type || 'upload', // 'upload' or 'download'
+    status: 'waiting', // waiting, active, done, error
+    progress: 0,
+    detail: opts.detail || '',
+    el: null
+  };
+  transferItems.push(item);
+  renderTransferPanel();
+  showTransferPanel();
+  return id;
+}
+function updateTransferItem(id, updates) {
+  for (var i = 0; i < transferItems.length; i++) {
+    if (transferItems[i].id === id) {
+      for (var k in updates) transferItems[i][k] = updates[k];
+      break;
+    }
+  }
+  renderTransferPanel();
+}
+function removeTransferItem(id) {
+  transferItems = transferItems.filter(function(t) { return t.id !== id; });
+  renderTransferPanel();
+  if (!transferItems.length) hideTransferPanel();
+}
+function getTransferIcon(status) {
+  if (status === 'waiting') return 'hourglass_empty';
+  if (status === 'active') return 'sync';
+  if (status === 'done') return 'check_circle';
+  if (status === 'error') return 'error';
+  return 'radio_button_unchecked';
+}
+function renderTransferPanel() {
+  var body = document.getElementById('tpBody');
+  var countEl = document.getElementById('tpCount');
+  if (!body) return;
+  var active = transferItems.filter(function(t) { return t.status === 'active' || t.status === 'waiting'; });
+  countEl.textContent = active.length || transferItems.length;
+  if (!transferItems.length) {
+    body.innerHTML = '<div class="tp-empty">暂无传输任务</div>';
+    return;
+  }
+  var uploads = transferItems.filter(function(t) { return t.type === 'upload'; });
+  var downloads = transferItems.filter(function(t) { return t.type === 'download'; });
+  var html = '';
+  if (uploads.length) {
+    html += '<div class="tp-group-label">上传</div>';
+    uploads.forEach(function(t) {
+      var pct = t.status === 'active' ? ' (' + Math.round(t.progress) + '%)' : '';
+      var statusLabel = t.status === 'waiting' ? '等待中' : t.status === 'active' ? '传输中' + pct : t.status === 'done' ? '完成' : '失败';
+      var detail = t.detail || formatSize(t.size);
+      html += '<div class="tp-item"><div class="tp-item-icon ' + t.status + '"><md-icon>' + getTransferIcon(t.status) + '</md-icon></div>' +
+        '<div class="tp-item-info"><div class="tp-item-name">' + esc(t.name) + '</div><div class="tp-item-detail">' + esc(detail) + '</div></div>' +
+        '<div class="tp-item-status ' + t.status + '">' + statusLabel + '</div></div>';
+    });
+  }
+  if (downloads.length) {
+    html += '<div class="tp-group-label">下载</div>';
+    downloads.forEach(function(t) {
+      var pct = t.status === 'active' ? ' (' + Math.round(t.progress) + '%)' : '';
+      var statusLabel = t.status === 'waiting' ? '等待中' : t.status === 'active' ? '传输中' + pct : t.status === 'done' ? '完成' : '失败';
+      var detail = t.detail || formatSize(t.size);
+      html += '<div class="tp-item"><div class="tp-item-icon ' + t.status + '"><md-icon>' + getTransferIcon(t.status) + '</md-icon></div>' +
+        '<div class="tp-item-info"><div class="tp-item-name">' + esc(t.name) + '</div><div class="tp-item-detail">' + esc(detail) + '</div></div>' +
+        '<div class="tp-item-status ' + t.status + '">' + statusLabel + '</div></div>';
+    });
+  }
+  body.innerHTML = html;
+}
+function renderUploadQueue(files, statuses) {
+  var el = document.getElementById('uploadQueue');
+  if (!el) return;
+  var html = '';
+  for (var i = 0; i < files.length; i++) {
+    var s = statuses[i] || 'waiting';
+    var pct = s === 'uploading' ? ' …' : s === 'done' ? ' ✓' : s === 'error' ? ' ✗' : '';
+    html += '<div class="uq-item" data-idx="' + i + '">' +
+      '<div class="uq-icon ' + s + '"><md-icon>' + getTransferIcon(s) + '</md-icon></div>' +
+      '<span class="uq-name">' + esc(files[i].name) + '</span>' +
+      '<span class="uq-size">' + formatSize(files[i].size) + '</span>' +
+      '<span class="uq-status ' + s + '">' + pct + '</span>' +
+      '</div>';
+  }
+  el.innerHTML = html;
+}
+function showTransferPanel() {
+  var p = document.getElementById('transferPanel');
+  if (p) p.classList.remove('hidden');
+}
+function hideTransferPanel() {
+  var p = document.getElementById('transferPanel');
+  if (p) p.classList.add('hidden');
+}
+function toggleTransferPanel() {
+  tpCollapsed = !tpCollapsed;
+  var body = document.getElementById('tpBody');
+  var toggle = document.getElementById('tpToggle');
+  if (body) body.classList.toggle('collapsed', tpCollapsed);
+  if (toggle) toggle.classList.toggle('collapsed', tpCollapsed);
+}
+
 // Initialize clipboard bar on page load
 window.addEventListener('load', function(){
   try{ renderClipboard(); }catch(e){ console.error('renderClipboard error:', e); }
@@ -837,6 +1064,20 @@ refreshIcons();
 // 兜底：CDN 加载失败时仍显示未升级的组件（隐藏只作用于未定义元素，不再整页隐藏）
 setTimeout(function(){ document.documentElement.classList.add('ready'); }, 2000);
 </script>
+
+<!-- Floating Transfer Panel -->
+<div class="transfer-panel hidden" id="transferPanel">
+  <div class="tp-header" onclick="toggleTransferPanel()">
+    <md-icon>swap_vert</md-icon>
+    <span class="tp-title">传输队列</span>
+    <span class="tp-count" id="tpCount">0</span>
+    <span class="tp-toggle" id="tpToggle"><md-icon>expand_more</md-icon></span>
+  </div>
+  <div class="tp-body" id="tpBody">
+    <div class="tp-empty" id="tpEmpty">暂无传输任务</div>
+  </div>
+</div>
+
 </body>
 </html>`;
 }
