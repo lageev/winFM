@@ -442,28 +442,20 @@ function closePreview(){document.getElementById('previewOverlay').classList.remo
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('uploadModal');closeModal('folderModal');closeModal('renameModal');closePreview()}});
 
-// Event delegation for action buttons
+// Track single file downloads in transfer panel (don't block native link)
 document.addEventListener('click', function(e){
-  // Intercept single file download links
   var dlLink = e.target.closest('a[href$="?download=1"]');
   if(dlLink && dlLink.closest('.file-row')){
-    e.preventDefault();
     var dlHref = dlLink.getAttribute('href');
     var dlName = decodeURIComponent(dlHref.replace('?download=1',''));
     var tpId = addTransferItem({ name: dlName, size: 0, type: 'download', detail: '下载中...' });
-    updateTransferItem(tpId, { status: 'active' });
-    // Trigger actual download
-    var a = document.createElement('a');
-    a.href = dlHref;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ document.body.removeChild(a); }, 1000);
     updateTransferItem(tpId, { status: 'done', detail: '完成' });
     setTimeout(function(){ removeTransferItem(tpId); }, 3000);
     return;
   }
-
+});
+// Event delegation for action buttons
+document.addEventListener('click', function(e){
   const btn = e.target.closest('.act-btn');
   if(!btn) return;
   const act = btn.dataset.act;
@@ -574,18 +566,20 @@ async function batchDownload(){
     var idx = i+1;
     updateTransferItem(tpIds[i], { status: 'active', detail: '下载中 ' + idx + '/' + names.length });
     try{
-      var r = await fetch(currentPath + encodeURIComponent(name) + '?download=1');
+      var fileUrl = window.location.origin + currentPath + encodeURIComponent(name) + '?download=1';
+      var r = await fetch(fileUrl);
       if(!r.ok){ throw new Error('HTTP ' + r.status); }
       var blob = await r.blob();
-      var url = URL.createObjectURL(blob);
+      var blobUrl = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      a.href = url;
+      a.href = blobUrl;
       a.download = name;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      (function(u){
-        setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); }, 60000);
-      })(url);
+      (function(el, u){
+        setTimeout(function(){ el.remove(); URL.revokeObjectURL(u); }, 60000);
+      })(a, blobUrl);
       updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: formatSize(blob.size) + ' · 完成' });
       okCount++;
     }catch(e){
@@ -755,11 +749,11 @@ async function previewFile(name){
   nameEl.textContent = name;
   content.innerHTML = '';
 
-  if(['jpg','jpeg','png','gif','webp','svg','bmp','ico'].includes(ext)){
+  if(['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','tif','avif'].includes(ext)){
     content.innerHTML = '<img src="'+url+'" alt="'+esc(name)+'">';
-  } else if(['mp4','webm'].includes(ext)){
+  } else if(['mp4','webm','mkv','avi','mov','wmv','flv','m4v'].includes(ext)){
     content.innerHTML = '<video src="'+url+'" controls autoplay style="max-width:90%;max-height:80vh"></video>';
-  } else if(['mp3','wav','ogg','aac','flac'].includes(ext)){
+  } else if(['mp3','wav','ogg','aac','flac','m4a','wma','opus'].includes(ext)){
     content.innerHTML = '<audio src="'+url+'" controls autoplay></audio>';
   } else {
     try{
