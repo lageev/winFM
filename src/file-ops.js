@@ -63,7 +63,7 @@ function getIcon(name, isDir) {
     '.txt':['description','blue'],'.md':['description','blue'],'.log':['description',''],
     // Executables / Installers
     '.exe':['terminal',''],'.msi':['terminal',''],'.sh':['terminal',''],'.bat':['terminal',''],
-    '.apk':['phone_android','green'],'.ipa':['phone_iphone','cyan'],'.dmg':['laptop_mac',''],'.pkg':['laptop_mac',''],'.deb':['terminal',''],'.rpm':['terminal',''],'.appx':['desktop_windows','blue'],
+    '.apk':['android','green'],'.ipa':['phone_iphone','cyan'],'.dmg':['disc_full',''],'.pkg':['inventory_2',''],'.deb':['terminal',''],'.rpm':['terminal',''],'.appx':['desktop_windows','blue'],
     // Fonts
     '.ttf':['font_download','violet'],'.otf':['font_download','violet'],'.woff':['font_download','violet'],'.woff2':['font_download','violet'],'.eot':['font_download','violet'],
   };
