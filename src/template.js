@@ -47,20 +47,20 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
     const size = i.isDir ? '-' : formatSize(i.size);
     const mtime = i.mtime ? new Date(i.mtime).toLocaleString('zh-CN') : '-';
     const encodedName = encodeURIComponent(i.name);
-    const dlBtn = i.isDir ? '' : '<a href="' + encodedName + '?download=1" class="btn btn-sm" title="下载"><i data-lucide="download"></i></a>';
-    const previewBtn = i.isDir ? '' : '<button class="btn btn-sm act-btn" data-act="preview" data-name="' + esc(i.name) + '" title="预览"><i data-lucide="eye"></i></button>';
+    const dlBtn = i.isDir ? '' : '<md-icon-button href="' + encodedName + '?download=1" class="material-icon-button" aria-label="下载" title="下载"><i data-lucide="download"></i></md-icon-button>';
+    const previewBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + esc(i.name) + '" aria-label="预览" title="预览"><i data-lucide="eye"></i></md-icon-button>';
     const dn = esc(i.name);
     return '<tr class="file-row" data-name="' + dn + '">' +
-      '<td class="col-check"><input type="checkbox" class="row-cb" data-name="' + dn + '"></td>' +
+      '<td class="col-check"><md-checkbox touch-target="wrapper" class="row-cb" data-name="' + dn + '" aria-label="选择 ' + dn + '"></md-checkbox></td>' +
       '<td class="col-icon file-icon">' + icon + '</td>' +
       '<td class="col-name file-name"><a href="' + href + '">' + dn + '</a></td>' +
       '<td class="col-size file-size">' + size + '</td>' +
       '<td class="col-time file-time">' + mtime + '</td>' +
       '<td class="col-actions file-actions">' + previewBtn + dlBtn +
-        '<button class="btn btn-sm act-btn" data-act="rename" data-name="' + dn + '" title="重命名"><i data-lucide="pencil"></i></button>' +
-        '<button class="btn btn-sm act-btn" data-act="move" data-name="' + dn + '" title="移动"><i data-lucide="scissors"></i></button>' +
-        '<button class="btn btn-sm act-btn" data-act="copy" data-name="' + dn + '" title="复制"><i data-lucide="copy"></i></button>' +
-        '<button class="btn btn-sm btn-danger act-btn" data-act="delete" data-name="' + dn + '" title="删除"><i data-lucide="trash-2"></i></button></td>' +
+        '<md-icon-button type="button" class="material-icon-button act-btn" data-act="rename" data-name="' + dn + '" aria-label="重命名" title="重命名"><i data-lucide="pencil"></i></md-icon-button>' +
+        '<md-icon-button type="button" class="material-icon-button act-btn" data-act="move" data-name="' + dn + '" aria-label="移动" title="移动"><i data-lucide="scissors"></i></md-icon-button>' +
+        '<md-icon-button type="button" class="material-icon-button act-btn" data-act="copy" data-name="' + dn + '" aria-label="复制" title="复制"><i data-lucide="copy"></i></md-icon-button>' +
+        '<md-icon-button type="button" class="material-icon-button danger act-btn" data-act="delete" data-name="' + dn + '" aria-label="删除" title="删除"><i data-lucide="trash-2"></i></md-icon-button></td>' +
       '</tr>';
   }).join('');
 
@@ -74,6 +74,7 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0a0e16" media="(prefers-color-scheme: dark)">
 <title>文件管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <style>html{background:#f7f8fb}@media(prefers-color-scheme:dark){html{background:#0a0e16}}body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -95,6 +96,16 @@ tailwind.config={darkMode:'media',theme:{extend:{
 }}};
 </script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script type="importmap">
+{"imports":{"@material/web/":"https://esm.run/@material/web/"}}
+</script>
+<script type="module">
+import '@material/web/all.js';
+import {styles as typescaleStyles} from '@material/web/typography/md-typescale-styles.js';
+if('adoptedStyleSheets' in Document.prototype){
+  document.adoptedStyleSheets = [...document.adoptedStyleSheets, typescaleStyles.styleSheet];
+}
+</script>
 <style type="text/tailwindcss">
 @layer base{
 :root{
@@ -111,6 +122,26 @@ tailwind.config={darkMode:'media',theme:{extend:{
   --border:214 32% 89%;--input:214 32% 89%;--ring:217 91% 60%;
   --violet:262 83% 60%;
   --radius:0.8rem;
+  --md-ref-typeface-brand:Roboto,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+  --md-ref-typeface-plain:Roboto,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+  --md-sys-color-primary:hsl(var(--accent));
+  --md-sys-color-on-primary:hsl(var(--accent-foreground));
+  --md-sys-color-primary-container:hsl(var(--secondary));
+  --md-sys-color-on-primary-container:hsl(var(--secondary-foreground));
+  --md-sys-color-secondary:hsl(var(--primary));
+  --md-sys-color-on-secondary:hsl(var(--primary-foreground));
+  --md-sys-color-secondary-container:hsl(var(--secondary));
+  --md-sys-color-on-secondary-container:hsl(var(--secondary-foreground));
+  --md-sys-color-error:hsl(var(--destructive));
+  --md-sys-color-on-error:hsl(var(--destructive-foreground));
+  --md-sys-color-surface:hsl(var(--card));
+  --md-sys-color-on-surface:hsl(var(--card-foreground));
+  --md-sys-color-surface-container:hsl(var(--muted));
+  --md-sys-color-surface-container-high:hsl(var(--card));
+  --md-sys-color-surface-container-highest:hsl(var(--secondary));
+  --md-sys-color-on-surface-variant:hsl(var(--muted-foreground));
+  --md-sys-color-outline:hsl(var(--border));
+  --md-sys-color-outline-variant:hsl(var(--border));
 }
 @media(prefers-color-scheme:dark){:root{
   color-scheme:dark;
@@ -155,10 +186,18 @@ button,input,a{font:inherit}
 .stat-pill b{@apply text-foreground font-semibold}
 .container{@apply relative max-w-[1240px] mx-auto p-6}
 .toolbar{@apply flex gap-2 mb-4 flex-wrap items-center p-2 rounded-xl border;background:hsl(var(--card)/0.6);backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);box-shadow:0 1px 2px hsl(222 47% 11%/0.05)}
+md-filled-button,md-filled-tonal-button,md-outlined-button,md-text-button{--md-filled-button-container-shape:10px;--md-filled-tonal-button-container-shape:10px;--md-outlined-button-container-shape:10px;--md-text-button-container-shape:10px;--md-filled-button-label-text-size:13px;--md-filled-tonal-button-label-text-size:13px;--md-outlined-button-label-text-size:13px;--md-text-button-label-text-size:13px;--md-filled-button-label-text-weight:600;--md-filled-tonal-button-label-text-weight:600;--md-outlined-button-label-text-weight:600;--md-text-button-label-text-weight:600}
+.toolbar md-filled-button,.toolbar md-filled-tonal-button,.toolbar md-outlined-button,#toolbarPaste md-filled-button{height:38px}
+md-filled-button .lucide,md-filled-tonal-button .lucide,md-outlined-button .lucide,md-text-button .lucide{width:16px;height:16px;stroke-width:1.9}
+.material-icon-button{width:32px;height:32px;color:hsl(var(--muted-foreground));--md-icon-button-icon-size:16px;--md-icon-button-state-layer-width:32px;--md-icon-button-state-layer-height:32px}
+.material-icon-button:hover{color:hsl(var(--foreground))}
+.material-icon-button.danger{color:hsl(var(--destructive))}
+.material-icon-button .lucide{width:16px;height:16px;stroke-width:1.9}
+md-checkbox{--md-checkbox-container-shape:4px;--md-checkbox-outline-color:hsl(var(--muted-foreground));--md-checkbox-selected-container-color:hsl(var(--accent));--md-checkbox-selected-icon-color:hsl(var(--accent-foreground))}
 .btn{@apply inline-flex items-center justify-center gap-2 min-h-[38px] px-3.5 text-[13px] font-medium rounded-lg border bg-card text-foreground cursor-pointer no-underline whitespace-nowrap transition-all duration-150;box-shadow:0 1px 2px hsl(222 47% 11%/0.05)}
 .btn:hover{@apply bg-secondary -translate-y-px}
 .btn:active{@apply translate-y-0}
-.btn:focus-visible,.group-toggle:focus-visible,.breadcrumb-item:focus-visible,input:focus-visible{@apply outline-none ring-2 ring-ring ring-offset-2;--tw-ring-offset-color:hsl(var(--background))}
+.btn:focus-visible,.group-toggle:focus-visible,.breadcrumb-item:focus-visible,input:focus-visible,md-filled-button:focus-visible,md-filled-tonal-button:focus-visible,md-outlined-button:focus-visible,md-text-button:focus-visible,md-icon-button:focus-visible,md-checkbox:focus-visible,md-outlined-text-field:focus-visible{@apply outline-none;--tw-ring-offset-color:hsl(var(--background))}
 .btn-primary{@apply bg-primary text-primary-foreground border-transparent;box-shadow:0 6px 18px hsl(var(--primary)/0.22)}
 .btn-primary:hover{@apply bg-primary/90 text-primary-foreground}
 .btn-danger{@apply text-destructive;border-color:hsl(var(--destructive)/0.4)}
@@ -194,23 +233,22 @@ tr:last-child td{@apply border-b-0}
 .fic-amber{color:hsl(38 92% 50%)}
 .fic-rose{color:hsl(345 80% 58%)}
 .fic-cyan{color:hsl(190 85% 45%)}
-.modal-overlay{@apply fixed inset-0 z-[200] flex justify-center items-center p-4 invisible opacity-0 transition-all duration-200;background:hsl(222 47% 4%/0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none}
-.modal-overlay.show{@apply visible opacity-100;pointer-events:auto}
-.modal{@apply rounded-xl border p-6 min-w-[400px] max-w-[520px] w-[90%] transition-all duration-200;background:hsl(var(--card));box-shadow:0 24px 60px hsl(222 47% 4%/0.4);transform:translateY(10px) scale(.97)}
-.modal-overlay.show .modal{transform:none}
-.modal h2{@apply flex items-center gap-2 text-lg mb-4 font-semibold tracking-tight}
-.modal h2 .lucide{width:18px;height:18px;color:hsl(var(--accent))}
-.modal input[type=text]{@apply w-full px-3 py-2.5 rounded-lg border text-sm mb-4 outline-none bg-background text-foreground transition-all}
-.modal input[type=text]:focus{@apply ring-2 ring-ring;border-color:hsl(var(--ring))}
+.material-dialog{width:min(520px,calc(100vw - 32px));--md-dialog-container-color:hsl(var(--card));--md-dialog-container-shape:18px;--md-dialog-headline-color:hsl(var(--foreground));--md-dialog-supporting-text-color:hsl(var(--muted-foreground))}
+#uploadModal{width:min(560px,calc(100vw - 32px))}
+.dialog-headline{@apply flex items-center gap-2 text-lg font-semibold}
+.dialog-headline .lucide{width:18px;height:18px;color:hsl(var(--accent))}
+.dialog-content{@apply flex flex-col gap-4}
+.dialog-support{@apply text-[13px] text-muted-foreground break-all}
 .modal-actions{@apply flex gap-2 justify-end}
+md-outlined-text-field{width:100%;--md-outlined-text-field-container-shape:10px;--md-outlined-text-field-focus-outline-color:hsl(var(--accent));--md-outlined-text-field-input-text-color:hsl(var(--foreground));--md-outlined-text-field-label-text-color:hsl(var(--muted-foreground));--md-outlined-text-field-focus-label-text-color:hsl(var(--accent))}
 .upload-area{@apply rounded-xl p-10 text-center cursor-pointer mb-4 transition-all;border:1.5px dashed hsl(var(--border));background:hsl(var(--secondary)/0.4)}
 .upload-area:hover,.upload-area.dragover{border-color:hsl(var(--accent));background:hsl(var(--accent)/0.08)}
 .upload-area.dragover{@apply scale-[1.01]}
 .upload-area p{@apply text-foreground mt-2 text-sm font-medium}
 .upload-area .icon .lucide{width:46px;height:46px;stroke-width:1.4;color:hsl(var(--accent))}
 .drop-zone-hint{@apply text-xs text-muted-foreground mt-1}
-#uploadProgress>div{@apply rounded-full overflow-hidden;background:hsl(var(--secondary))!important}
-#progressBar{background:linear-gradient(90deg,hsl(var(--accent)),hsl(var(--violet)))!important;border-radius:9999px}
+#uploadProgress{@apply flex flex-col gap-2}
+#progressBar{--md-linear-progress-track-height:8px;--md-linear-progress-active-indicator-height:8px;--md-linear-progress-track-shape:8px;--md-linear-progress-track-color:hsl(var(--secondary));--md-linear-progress-active-indicator-color:hsl(var(--accent))}
 #progressText{@apply text-muted-foreground !important}
 .preview-overlay{@apply fixed inset-0 z-[300] flex justify-center items-center flex-col p-6 invisible opacity-0 transition-opacity duration-200;background:hsl(222 47% 2%/0.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:none}
 .preview-overlay.show{@apply visible opacity-100;pointer-events:auto}
@@ -231,16 +269,14 @@ tr:last-child td{@apply border-b-0}
 .toast.success{@apply text-white;background:hsl(var(--success))}
 .toast.info{@apply text-white;background:hsl(var(--accent))}
 .col-check{@apply w-9 text-center}
-.col-check input[type=checkbox]{@apply w-4 h-4 cursor-pointer;accent-color:hsl(var(--accent))}
+.col-check md-checkbox{width:28px;height:28px;vertical-align:middle}
 .sortable{@apply cursor-pointer select-none transition-colors relative}
 .sortable:hover{@apply bg-secondary/60}
 .sortable a{@apply text-muted-foreground no-underline inline-flex items-center gap-1}
 .sortable a:hover{@apply text-foreground}
 .sortable .sort-icon{@apply text-[10px];color:hsl(var(--accent))}
 .sortable:not(.sort-active) .sort-icon{@apply opacity-30}
-.group-toggle{@apply inline-flex items-center justify-center gap-1.5 min-h-[38px] text-[13px] font-medium text-muted-foreground cursor-pointer px-3 rounded-lg border bg-card no-underline transition-all}
-.group-toggle:hover{@apply text-foreground bg-secondary}
-.group-toggle.active{@apply bg-primary text-primary-foreground border-transparent}
+.group-toggle{@apply no-underline}
 tr.selected{background:hsl(var(--accent)/0.1)!important}
 .batch-bar{@apply flex items-center gap-2 px-3 py-2.5 rounded-lg mb-4 text-[13px] flex-wrap text-white;background:linear-gradient(135deg,hsl(var(--accent)),hsl(var(--violet)));box-shadow:0 10px 28px hsl(var(--accent)/0.32)}
 .batch-bar b{@apply text-sm}
@@ -248,6 +284,8 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 .batch-bar .btn:hover{@apply text-white;background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.55)}
 .batch-bar .btn-danger{border-color:rgba(255,255,255,0.4)}
 .batch-bar .btn-danger:hover{background:rgba(220,38,38,0.4)}
+.batch-bar md-filled-tonal-button,.batch-bar md-outlined-button{height:32px;--md-filled-tonal-button-container-color:rgba(255,255,255,0.14);--md-filled-tonal-button-label-text-color:#fff;--md-outlined-button-label-text-color:#fff;--md-outlined-button-outline-color:rgba(255,255,255,0.4)}
+.batch-bar md-filled-tonal-button:hover,.batch-bar md-outlined-button:hover{--md-filled-tonal-button-container-color:rgba(255,255,255,0.22);--md-outlined-button-outline-color:rgba(255,255,255,0.65)}
 }
 @media(max-width:860px){
   .header{@apply flex-col items-start px-4 py-3 gap-2.5}
@@ -259,7 +297,7 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
   .breadcrumb,.breadcrumb-item{@apply text-xs}
   .container{@apply p-3.5}
   .toolbar{@apply gap-1.5 p-1.5}
-  .toolbar .btn,.group-toggle{@apply min-h-[34px] px-2.5 text-xs}
+  .toolbar md-filled-button,.toolbar md-filled-tonal-button,.toolbar md-outlined-button,#toolbarPaste md-filled-button{height:34px}
   table{table-layout:fixed}
   th,td{@apply px-1.5 py-2 text-xs}
   .col-size,.col-time{@apply hidden}
@@ -267,11 +305,11 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
   .col-name{@apply overflow-hidden text-ellipsis}
   .col-actions{width:auto}
   .col-check{@apply w-7}
-  .col-check input[type=checkbox]{@apply w-3.5 h-3.5}
+  .col-check md-checkbox{width:26px;height:26px}
   .file-name a{@apply text-[13px]}
   .file-actions{@apply gap-1 flex-wrap justify-start}
   .file-actions .btn-sm{@apply px-1.5 py-1 text-xs}
-  .modal{min-width:auto!important;width:100%!important;@apply p-4}
+  .material-dialog{width:calc(100vw - 24px)}
   .upload-area{@apply p-8}
   .clipboard-bar{@apply px-2.5 py-2 text-xs gap-2}
   .clipboard-bar .hide-mobile{@apply hidden}
@@ -297,17 +335,17 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
 <div class="container">
   ${msgHtml}
   <div class="toolbar">
-    <button class="btn btn-primary" onclick="showUpload()"><i data-lucide="upload"></i> 上传文件</button>
-    <button class="btn" onclick="showNewFolder()"><i data-lucide="folder-plus"></i> 新建文件夹</button>
-    <button class="btn" onclick="location.reload()"><i data-lucide="refresh-cw"></i> 刷新</button>
-    <a href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle${groupDirs?' active':''}" title="切换目录优先显示"><i data-lucide="folder-tree"></i> 目录优先</a>
+    <md-filled-button type="button" onclick="showUpload()"><i data-lucide="upload" slot="icon"></i>上传文件</md-filled-button>
+    <md-outlined-button type="button" onclick="showNewFolder()"><i data-lucide="folder-plus" slot="icon"></i>新建文件夹</md-outlined-button>
+    <md-outlined-button type="button" onclick="location.reload()"><i data-lucide="refresh-cw" slot="icon"></i>刷新</md-outlined-button>
+    <${groupDirs?'md-filled-tonal-button':'md-outlined-button'} href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle" title="切换目录优先显示"><i data-lucide="folder-tree" slot="icon"></i>目录优先</${groupDirs?'md-filled-tonal-button':'md-outlined-button'}>
     <span id="toolbarPaste"></span>
   </div>
   <div id="batchBar"></div>
   <div id="clipboardBar"></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th class="col-check" style="width:36px"><input type="checkbox" id="selectAll"></th><th class="col-icon" style="width:40px"></th><th class="col-name sortable${sortClass('name')}"><a href="${sortUrl('name')}">名称${sortIcon('name')}</a></th><th class="col-size sortable${sortClass('size')}" style="width:80px"><a href="${sortUrl('size')}">大小${sortIcon('size')}</a></th><th class="col-time sortable${sortClass('mtime')}" style="width:160px"><a href="${sortUrl('mtime')}">修改时间${sortIcon('mtime')}</a></th><th class="col-actions" style="width:220px">操作</th></tr></thead>
+      <thead><tr><th class="col-check" style="width:36px"><md-checkbox touch-target="wrapper" id="selectAll" aria-label="选择全部"></md-checkbox></th><th class="col-icon" style="width:40px"></th><th class="col-name sortable${sortClass('name')}"><a href="${sortUrl('name')}">名称${sortIcon('name')}</a></th><th class="col-size sortable${sortClass('size')}" style="width:80px"><a href="${sortUrl('size')}">大小${sortIcon('size')}</a></th><th class="col-time sortable${sortClass('mtime')}" style="width:160px"><a href="${sortUrl('mtime')}">修改时间${sortIcon('mtime')}</a></th><th class="col-actions" style="width:220px">操作</th></tr></thead>
       <tbody>
         ${rp !== '/' ? '<tr class="file-row"><td class="col-check"></td><td class="col-icon"><i data-lucide="corner-left-up" class="fic"></i></td><td class="col-name"><a href="../">返回上级</a></td><td class="col-size">-</td><td class="col-time">-</td><td class="col-actions"></td></tr>' : ''}
         ${listHtml}
@@ -317,10 +355,10 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
   </div>
 </div>
 
-<!-- Upload Modal -->
-<div class="modal-overlay" id="uploadModal">
-  <div class="modal">
-    <h2><i data-lucide="upload"></i> 上传文件</h2>
+<!-- Upload Dialog -->
+<md-dialog id="uploadModal" class="material-dialog">
+  <div slot="headline" class="dialog-headline"><i data-lucide="upload"></i><span>上传文件</span></div>
+  <div slot="content" class="dialog-content">
     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
       <div class="icon"><i data-lucide="cloud-upload"></i></div>
       <p>点击选择文件，或拖拽文件到这里</p>
@@ -328,45 +366,43 @@ tr.selected{background:hsl(var(--accent)/0.1)!important}
     </div>
     <input type="file" id="fileInput" multiple style="display:none">
     <div id="uploadProgress" style="display:none">
-      <div style="background:#f0f0f0;border-radius:8px;overflow:hidden;height:8px;margin-bottom:8px">
-        <div id="progressBar" style="background:var(--accent);height:100%;width:0%;transition:width 0.3s"></div>
-      </div>
+      <md-linear-progress id="progressBar" value="0" aria-label="上传进度"></md-linear-progress>
       <div id="progressText" style="font-size:13px;color:#999;text-align:center"></div>
     </div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('uploadModal')">取消</button>
-    </div>
   </div>
-</div>
+  <div slot="actions" class="modal-actions">
+    <md-text-button type="button" onclick="closeModal('uploadModal')">取消</md-text-button>
+  </div>
+</md-dialog>
 
-<!-- New Folder Modal -->
-<div class="modal-overlay" id="folderModal">
-  <div class="modal">
-    <h2><i data-lucide="folder-plus"></i> 新建文件夹</h2>
-    <input type="text" id="folderName" placeholder="输入文件夹名称">
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('folderModal')">取消</button>
-      <button class="btn btn-primary" onclick="createFolder()">创建</button>
-    </div>
+<!-- New Folder Dialog -->
+<md-dialog id="folderModal" class="material-dialog">
+  <div slot="headline" class="dialog-headline"><i data-lucide="folder-plus"></i><span>新建文件夹</span></div>
+  <div slot="content" class="dialog-content">
+    <md-outlined-text-field id="folderName" label="文件夹名称" placeholder="输入文件夹名称"></md-outlined-text-field>
   </div>
-</div>
+  <div slot="actions" class="modal-actions">
+    <md-text-button type="button" onclick="closeModal('folderModal')">取消</md-text-button>
+    <md-filled-button type="button" onclick="createFolder()">创建</md-filled-button>
+  </div>
+</md-dialog>
 
-<!-- Rename Modal -->
-<div class="modal-overlay" id="renameModal">
-  <div class="modal">
-    <h2><i data-lucide="pencil"></i> 重命名</h2>
-    <div id="renameOldName" style="font-size:13px;color:#999;margin-bottom:12px;word-break:break-all"></div>
-    <input type="text" id="renameNewName" placeholder="输入新名称">
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('renameModal')">取消</button>
-      <button class="btn btn-primary" onclick="doRename()">确定</button>
-    </div>
+<!-- Rename Dialog -->
+<md-dialog id="renameModal" class="material-dialog">
+  <div slot="headline" class="dialog-headline"><i data-lucide="pencil"></i><span>重命名</span></div>
+  <div slot="content" class="dialog-content">
+    <div id="renameOldName" class="dialog-support"></div>
+    <md-outlined-text-field id="renameNewName" label="新名称" placeholder="输入新名称"></md-outlined-text-field>
   </div>
-</div>
+  <div slot="actions" class="modal-actions">
+    <md-text-button type="button" onclick="closeModal('renameModal')">取消</md-text-button>
+    <md-filled-button type="button" onclick="doRename()">确定</md-filled-button>
+  </div>
+</md-dialog>
 
 <!-- Preview Modal -->
 <div class="preview-overlay" id="previewOverlay">
-  <button class="preview-close" onclick="closePreview()"><i data-lucide="x"></i></button>
+  <md-icon-button class="preview-close" onclick="closePreview()" aria-label="关闭预览"><i data-lucide="x"></i></md-icon-button>
   <div id="previewContent"></div>
   <div class="preview-name" id="previewName"></div>
 </div>
@@ -376,9 +412,24 @@ const currentPath = location.pathname;
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function refreshIcons(){if(window.lucide)lucide.createIcons();}
 
-function showUpload(){document.getElementById('uploadModal').classList.add('show')}
-function showNewFolder(){document.getElementById('folderModal').classList.add('show');document.getElementById('folderName').focus()}
-function closeModal(id){document.getElementById(id).classList.remove('show')}
+function showDialog(id){
+  const dialog = document.getElementById(id);
+  if(!dialog) return;
+  if(dialog.open) return;
+  if(typeof dialog.show === 'function') dialog.show();
+  else dialog.setAttribute('open', '');
+}
+function closeModal(id){
+  const dialog = document.getElementById(id);
+  if(!dialog) return;
+  if(typeof dialog.close === 'function' && dialog.open) dialog.close();
+  else dialog.removeAttribute('open');
+}
+function showUpload(){showDialog('uploadModal')}
+function showNewFolder(){
+  showDialog('folderModal');
+  setTimeout(function(){document.getElementById('folderName').focus()},100);
+}
 
 function closePreview(){document.getElementById('previewOverlay').classList.remove('show');document.getElementById('previewContent').innerHTML=''}
 
@@ -419,11 +470,11 @@ function updateBatchBar(){
   var n = selectedItems.size;
   bar.innerHTML = '<div class="batch-bar">'+
     '<span>已选 <b>'+n+'</b> 项</span>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-download"><i data-lucide="download"></i> 打包下载</button>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-copy"><i data-lucide="copy"></i> 批量复制</button>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-move"><i data-lucide="scissors"></i> 批量移动</button>'+
-    '<button class="btn btn-sm btn-danger act-btn" data-act="batch-delete"><i data-lucide="trash-2"></i> 批量删除</button>'+
-    '<button class="btn btn-sm act-btn" data-act="batch-clear" style="margin-left:auto"><i data-lucide="x"></i> 取消选择</button>'+
+    '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-download"><i data-lucide="download" slot="icon"></i>打包下载</md-filled-tonal-button>'+
+    '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-copy"><i data-lucide="copy" slot="icon"></i>批量复制</md-filled-tonal-button>'+
+    '<md-filled-tonal-button type="button" class="act-btn" data-act="batch-move"><i data-lucide="scissors" slot="icon"></i>批量移动</md-filled-tonal-button>'+
+    '<md-outlined-button type="button" class="act-btn" data-act="batch-delete"><i data-lucide="trash-2" slot="icon"></i>批量删除</md-outlined-button>'+
+    '<md-outlined-button type="button" class="act-btn" data-act="batch-clear" style="margin-left:auto"><i data-lucide="x" slot="icon"></i>取消选择</md-outlined-button>'+
     '</div>';
   refreshIcons();
 }
@@ -442,7 +493,10 @@ function refreshSelection(){
     }
   }
   var selectAll = document.getElementById('selectAll');
-  if(selectAll) selectAll.checked = cbs.length > 0 && selectedItems.size === cbs.length;
+  if(selectAll){
+    selectAll.checked = cbs.length > 0 && selectedItems.size === cbs.length;
+    selectAll.indeterminate = selectedItems.size > 0 && selectedItems.size < cbs.length;
+  }
   updateBatchBar();
 }
 
@@ -470,7 +524,10 @@ document.addEventListener('change', function(e){
     updateBatchBar();
     var selectAll = document.getElementById('selectAll');
     var cbs = document.querySelectorAll('.row-cb');
-    if(selectAll) selectAll.checked = cbs.length > 0 && selectedItems.size === cbs.length;
+    if(selectAll){
+      selectAll.checked = cbs.length > 0 && selectedItems.size === cbs.length;
+      selectAll.indeterminate = selectedItems.size > 0 && selectedItems.size < cbs.length;
+    }
   }
 });
 
@@ -582,21 +639,21 @@ async function handleFiles(files){
     var file = files[i];
     var idx = i+1;
     text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name;
-    bar.style.width = (totalSize ? Math.round(uploadedSize/totalSize*100) : Math.round(i/files.length*100))+'%';
+    bar.value = totalSize ? uploadedSize/totalSize : i/files.length;
     try{
       await uploadFile(file, function(loaded, total){
         var pct = totalSize ? Math.round((uploadedSize + loaded) / totalSize * 100) : Math.round(idx/files.length*100);
-        bar.style.width = pct + '%';
+        bar.value = pct / 100;
         text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name + '  ' + formatSize(loaded) + '/' + formatSize(total);
       });
       uploadedSize += file.size;
-      if(!totalSize) bar.style.width = Math.round(idx/files.length*100)+'%';
+      if(!totalSize) bar.value = idx/files.length;
     }catch(e){
       text.textContent = '上传失败: ' + file.name + (e.message ? ' (' + e.message + ')' : '');
       return;
     }
   }
-  bar.style.width = '100%';
+  bar.value = 1;
   text.textContent = '上传完成！共 ' + files.length + ' 个文件';
   setTimeout(function(){ location.reload(); }, 800);
 }
@@ -655,8 +712,8 @@ function showRename(name){
   document.getElementById('renameOldName').textContent = '原名称: ' + name;
   const input = document.getElementById('renameNewName');
   input.value = name;
-  document.getElementById('renameModal').classList.add('show');
-  setTimeout(()=>{input.focus();input.select()},100);
+  showDialog('renameModal');
+  setTimeout(()=>{input.focus();if(typeof input.select === 'function') input.select()},100);
 }
 async function doRename(){
   const newName = document.getElementById('renameNewName').value.trim();
@@ -725,18 +782,20 @@ function renderClipboard(){
     '<span class="hide-mobile" style="opacity:0.7;font-size:13px">→ 浏览到目标文件夹后点击右侧按钮粘贴</span>'+
     '</div>';
   // Cancel button
-  var cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn btn-sm act-btn';
+  var cancelBtn = document.createElement('md-text-button');
+  cancelBtn.className = 'act-btn';
+  cancelBtn.setAttribute('type', 'button');
   cancelBtn.setAttribute('data-act', 'cancel-clip');
   cancelBtn.style.cssText = 'margin-left:auto;opacity:0.7';
-  cancelBtn.innerHTML = '<i data-lucide="x"></i> 取消';
+  cancelBtn.innerHTML = '<i data-lucide="x" slot="icon"></i>取消';
   bar.querySelector('.clipboard-bar').appendChild(cancelBtn);
   // Paste button in toolbar
   toolbar.innerHTML = '';
-  var pasteBtn = document.createElement('button');
-  pasteBtn.className = 'btn btn-primary act-btn';
+  var pasteBtn = document.createElement('md-filled-button');
+  pasteBtn.className = 'act-btn';
+  pasteBtn.setAttribute('type', 'button');
   pasteBtn.setAttribute('data-act', 'paste');
-  pasteBtn.innerHTML = '<i data-lucide="clipboard-paste"></i> 粘贴到此处';
+  pasteBtn.innerHTML = '<i data-lucide="clipboard-paste" slot="icon"></i>粘贴到此处';
   toolbar.appendChild(pasteBtn);
   refreshIcons();
 }
