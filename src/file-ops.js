@@ -94,4 +94,65 @@ function getIcon(name, isDir) {
   return '<md-icon class="fic' + (m[1] ? ' fic-' + m[1] : '') + '">' + m[0] + '</md-icon>';
 }
 
-module.exports = { copyRecursiveSync, isTextFile, isImageFile, isVideoFile, isAudioFile, getIcon };
+function getDirectorySize(dirPath) {
+  let total = 0;
+  let fileCount = 0;
+  let dirCount = 0;
+  const st = fs.lstatSync(dirPath);
+  if (!st.isDirectory()) return { size: st.size, files: 1, dirs: 0 };
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dirPath, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      dirCount++;
+      const sub = getDirectorySize(full);
+      total += sub.size;
+      fileCount += sub.files;
+      dirCount += sub.dirs;
+    } else if (entry.isFile()) {
+      total += fs.statSync(full).size;
+      fileCount++;
+    }
+  }
+  return { size: total, files: fileCount, dirs: dirCount };
+}
+
+const fsp = fs.promises;
+
+async function getDirectorySizeAsync(dirPath) {
+  let total = 0, fileCount = 0, dirCount = 0;
+  let entries;
+  try {
+    const st = await fsp.lstat(dirPath);
+    if (!st.isDirectory()) return { size: st.size, files: 1, dirs: 0 };
+    entries = await fsp.readdir(dirPath, { withFileTypes: true });
+  } catch(e) { return { size: 0, files: 0, dirs: 0 }; }
+  // Process in batches to avoid too many concurrent handles
+  for (let i = 0; i < entries.length; i += 50) {
+    const batch = entries.slice(i, i + 50);
+    const results = await Promise.all(batch.map(async function(entry) {
+      const full = path.join(dirPath, entry.name);
+      if (entry.isSymbolicLink()) return null;
+      try {
+        const st = await fsp.lstat(full);
+        if (st.isDirectory()) {
+          const sub = await getDirectorySizeAsync(full);
+          return { size: sub.size, files: sub.files, dirs: 1 + sub.dirs };
+        } else if (st.isFile()) {
+          return { size: st.size, files: 1, dirs: 0 };
+        }
+      } catch(e) {}
+      return null;
+    }));
+    for (const r of results) {
+      if (!r) continue;
+      total += r.size;
+      fileCount += r.files;
+      dirCount += r.dirs;
+    }
+  }
+  return { size: total, files: fileCount, dirs: dirCount };
+}
+
+module.exports = { copyRecursiveSync, isTextFile, isImageFile, isVideoFile, isAudioFile, getIcon, getDirectorySize, getDirectorySizeAsync };

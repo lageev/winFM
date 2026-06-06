@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { safeName, safeChildPath, pathExists, realPathInsideRoot, ensureSafeDirectory, isInside, getSafePathParam } = require('../utils');
-const { copyRecursiveSync } = require('../file-ops');
+const { copyRecursiveSync, getDirectorySize } = require('../file-ops');
 
 function handleAction(req, res, url, fp, action) {
   if (action === 'mkdir') {
@@ -98,6 +98,23 @@ function handleAction(req, res, url, fp, action) {
     try {
       copyRecursiveSync(src, dest);
       res.writeHead(200); res.end('OK');
+    } catch(e) {
+      res.writeHead(500); res.end(e.message);
+    }
+    return;
+  }
+
+  if (action === 'folder-size') {
+    const name = safeName(url.searchParams.get('name'));
+    if (!name) { res.writeHead(400); res.end('Missing name'); return; }
+    const target = safeChildPath(fp, name);
+    if (!target) { res.writeHead(400); res.end('Invalid path'); return; }
+    try {
+      const st = fs.lstatSync(target);
+      if (!st.isDirectory()) { res.writeHead(400); res.end('Not a directory'); return; }
+      const result = getDirectorySize(target);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
     } catch(e) {
       res.writeHead(500); res.end(e.message);
     }

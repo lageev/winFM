@@ -21,10 +21,20 @@
       "Bash(where.exe gh *)",
       "Bash(C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe api *)",
       "Bash(git config *)",
+      "Bash(C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe repo *)",
       "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(docker-compose ps *)",
+      "Bash(Get-ChildItem *)",
       "Bash(git stash *)",
-      "Bash(git check-ignore *)",
-      "Bash(git pull *)"
+      "Bash(python -m json.tool)",
+      "PowerShell(docker exec file-manager *)",
+      "PowerShell(\\(Invoke-WebRequest -Uri http://localhost:8888/ -UseBasicParsing\\).Content | Select-String -Pattern 'file-name' -AllMatches | ForEach-Object { $_.Matches.Value } | Select-Object -First 10)",
+      "PowerShell(netstat *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(Start-Sleep -Seconds 5)",
+      "Bash(powershell.exe *)"
     ]
   }
 }

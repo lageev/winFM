@@ -38,7 +38,7 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
   const statsHtml = '<div class="header-stats">' +
     '<span class="stat-pill"><b>' + dirCount + '</b> 文件夹</span>' +
     '<span class="stat-pill"><b>' + fileCount + '</b> 文件</span>' +
-    '<span class="stat-pill"><b>' + formatSize(totalBytes) + '</b></span>' +
+    '<span class="stat-pill" id="dirSizePill"><md-icon style="font-size:14px;vertical-align:middle">hourglass_empty</md-icon> 计算中…</span>' +
     '</div>';
 
   const listHtml = list.map(i => {
@@ -72,8 +72,8 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#FEF7FF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141218" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FFFBFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1110" media="(prefers-color-scheme: dark)">
 <title>文件管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,71 +94,71 @@ if('adoptedStyleSheets' in Document.prototype){
   color-scheme:light;
   --md-ref-typeface-brand:Roboto,system-ui,-apple-system,'Segoe UI',sans-serif;
   --md-ref-typeface-plain:Roboto,system-ui,-apple-system,'Segoe UI',sans-serif;
-  --md-sys-color-primary:#6750A4;
+  --md-sys-color-primary:#C05000;
   --md-sys-color-on-primary:#FFFFFF;
-  --md-sys-color-primary-container:#EADDFF;
-  --md-sys-color-on-primary-container:#21005D;
-  --md-sys-color-secondary:#625B71;
+  --md-sys-color-primary-container:#DDB8A4;
+  --md-sys-color-on-primary-container:#3A0A00;
+  --md-sys-color-secondary:#765848;
   --md-sys-color-on-secondary:#FFFFFF;
-  --md-sys-color-secondary-container:#E8DEF8;
-  --md-sys-color-on-secondary-container:#1D192B;
-  --md-sys-color-tertiary:#7D5260;
+  --md-sys-color-secondary-container:#D6B9A9;
+  --md-sys-color-on-secondary-container:#2B160A;
+  --md-sys-color-tertiary:#6B6226;
   --md-sys-color-on-tertiary:#FFFFFF;
-  --md-sys-color-tertiary-container:#FFD8E4;
-  --md-sys-color-on-tertiary-container:#31111D;
+  --md-sys-color-tertiary-container:#D6CE8E;
+  --md-sys-color-on-tertiary-container:#221B00;
   --md-sys-color-error:#B3261E;
   --md-sys-color-on-error:#FFFFFF;
   --md-sys-color-error-container:#F9DEDC;
   --md-sys-color-on-error-container:#410E0B;
-  --md-sys-color-surface:#FEF7FF;
-  --md-sys-color-on-surface:#1D1B20;
-  --md-sys-color-surface-variant:#E7E0EC;
-  --md-sys-color-on-surface-variant:#49454F;
-  --md-sys-color-surface-container-lowest:#FFFFFF;
-  --md-sys-color-surface-container-low:#F7F2FA;
-  --md-sys-color-surface-container:#F3EDF7;
-  --md-sys-color-surface-container-high:#ECE6F0;
-  --md-sys-color-surface-container-highest:#E6E0E9;
-  --md-sys-color-outline:#79747E;
-  --md-sys-color-outline-variant:#CAC4D0;
-  --md-sys-color-inverse-surface:#322F35;
-  --md-sys-color-inverse-on-surface:#F5EFF7;
-  --md-sys-color-inverse-primary:#D0BCFF;
+  --md-sys-color-surface:#F0E6E0;
+  --md-sys-color-on-surface:#201A18;
+  --md-sys-color-surface-variant:#E6D5CC;
+  --md-sys-color-on-surface-variant:#53433D;
+  --md-sys-color-surface-container-lowest:#EAE0DA;
+  --md-sys-color-surface-container-low:#E4DAD4;
+  --md-sys-color-surface-container:#DED4CE;
+  --md-sys-color-surface-container-high:#D8CEC8;
+  --md-sys-color-surface-container-highest:#D2C8C2;
+  --md-sys-color-outline:#85736C;
+  --md-sys-color-outline-variant:#D8C2B9;
+  --md-sys-color-inverse-surface:#362F2D;
+  --md-sys-color-inverse-on-surface:#FBEEEA;
+  --md-sys-color-inverse-primary:#FFB599;
   --md-sys-color-shadow:#000000;
   --md-sys-color-scrim:#000000;
 }
 @media(prefers-color-scheme:dark){:root{
   color-scheme:dark;
-  --md-sys-color-primary:#D0BCFF;
-  --md-sys-color-on-primary:#381E72;
-  --md-sys-color-primary-container:#4F378B;
-  --md-sys-color-on-primary-container:#EADDFF;
-  --md-sys-color-secondary:#CCC2DC;
-  --md-sys-color-on-secondary:#332D41;
-  --md-sys-color-secondary-container:#4A4458;
-  --md-sys-color-on-secondary-container:#E8DEF8;
-  --md-sys-color-tertiary:#EFB8C8;
-  --md-sys-color-on-tertiary:#492532;
-  --md-sys-color-tertiary-container:#633B48;
-  --md-sys-color-on-tertiary-container:#FFD8E4;
+  --md-sys-color-primary:#FFB599;
+  --md-sys-color-on-primary:#552000;
+  --md-sys-color-primary-container:#7A3100;
+  --md-sys-color-on-primary-container:#FFDBCE;
+  --md-sys-color-secondary:#E7BDB0;
+  --md-sys-color-on-secondary:#442A1F;
+  --md-sys-color-secondary-container:#5D4034;
+  --md-sys-color-on-secondary-container:#FFDBCE;
+  --md-sys-color-tertiary:#D8D08B;
+  --md-sys-color-on-tertiary:#373100;
+  --md-sys-color-tertiary-container:#504A10;
+  --md-sys-color-on-tertiary-container:#F5E9A0;
   --md-sys-color-error:#F2B8B5;
   --md-sys-color-on-error:#601410;
   --md-sys-color-error-container:#8C1D18;
   --md-sys-color-on-error-container:#F9DEDC;
-  --md-sys-color-surface:#141218;
-  --md-sys-color-on-surface:#E6E0E9;
-  --md-sys-color-surface-variant:#49454F;
-  --md-sys-color-on-surface-variant:#CAC4D0;
-  --md-sys-color-surface-container-lowest:#0F0D13;
-  --md-sys-color-surface-container-low:#1D1B20;
-  --md-sys-color-surface-container:#211F26;
-  --md-sys-color-surface-container-high:#2B2930;
-  --md-sys-color-surface-container-highest:#36343B;
-  --md-sys-color-outline:#938F99;
-  --md-sys-color-outline-variant:#49454F;
-  --md-sys-color-inverse-surface:#E6E0E9;
-  --md-sys-color-inverse-on-surface:#322F35;
-  --md-sys-color-inverse-primary:#6750A4;
+  --md-sys-color-surface:#1A1110;
+  --md-sys-color-on-surface:#EDE0DB;
+  --md-sys-color-surface-variant:#53433D;
+  --md-sys-color-on-surface-variant:#D8C2B9;
+  --md-sys-color-surface-container-lowest:#140C0A;
+  --md-sys-color-surface-container-low:#231A17;
+  --md-sys-color-surface-container:#271E1B;
+  --md-sys-color-surface-container-high:#322825;
+  --md-sys-color-surface-container-highest:#3D3330;
+  --md-sys-color-outline:#A08D85;
+  --md-sys-color-outline-variant:#53433D;
+  --md-sys-color-inverse-surface:#EDE0DB;
+  --md-sys-color-inverse-on-surface:#362F2D;
+  --md-sys-color-inverse-primary:#C05000;
 }}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -254,7 +254,7 @@ md-outlined-text-field{width:100%}
 #progressText{font-size:13px;color:var(--md-sys-color-on-surface-variant);text-align:center}
 
 /* Floating transfer panel */
-.transfer-panel{position:fixed;bottom:20px;right:20px;z-index:200;width:420px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
+.transfer-panel{position:fixed;bottom:20px;right:20px;z-index:9999;width:420px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12);background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:opacity .2s,transform .2s;transform-origin:bottom right}
 .transfer-panel.hidden{opacity:0;pointer-events:none;transform:scale(.92)}
 .tp-header{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;background:var(--md-sys-color-surface-container);border-bottom:1px solid var(--md-sys-color-outline-variant);position:relative}
 .tp-header-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--md-sys-color-primary);transition:width .3s ease;border-radius:0 2px 0 0;opacity:0}
@@ -441,6 +441,7 @@ md-outlined-text-field{width:100%}
   ${msgHtml}
   <div class="toolbar">
     <md-filled-button type="button" onclick="showUpload()"><md-icon slot="icon">upload</md-icon>上传文件</md-filled-button>
+    <md-filled-button type="button" onclick="showFolderUpload()"><md-icon slot="icon">drive_folder_upload</md-icon>上传文件夹</md-filled-button>
     <md-filled-tonal-button type="button" onclick="showNewFolder()"><md-icon slot="icon">create_new_folder</md-icon>新建文件夹</md-filled-tonal-button>
     <md-outlined-button type="button" onclick="location.reload()"><md-icon slot="icon">refresh</md-icon>刷新</md-outlined-button>
     <${groupDirs?'md-filled-tonal-button':'md-outlined-button'} href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle" title="切换目录优先显示"><md-icon slot="icon">account_tree</md-icon>目录优先</${groupDirs?'md-filled-tonal-button':'md-outlined-button'}>
@@ -469,9 +470,10 @@ md-outlined-text-field{width:100%}
     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
       <div class="icon"><md-icon>cloud_upload</md-icon></div>
       <p>点击选择文件，或拖拽文件到这里</p>
-      <div class="drop-zone-hint">支持多文件上传</div>
+      <div class="drop-zone-hint">支持多文件、文件夹上传及拖放</div>
     </div>
     <input type="file" id="fileInput" multiple style="display:none">
+    <input type="file" id="folderInput" webkitdirectory style="display:none">
     <div id="uploadProgress" style="display:none">
       <md-linear-progress id="progressBar" value="0" aria-label="上传进度"></md-linear-progress>
       <div id="progressText"></div>
@@ -548,6 +550,7 @@ function closeModal(id){
   else dialog.removeAttribute('open');
 }
 function showUpload(){showDialog('uploadModal')}
+function showFolderUpload(){document.getElementById('folderInput').click()}
 function showNewFolder(){
   showDialog('folderModal');
   setTimeout(function(){document.getElementById('folderName').focus()},100);
@@ -738,11 +741,73 @@ function batchCopy(){
 // Upload
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
+const folderInput = document.getElementById('folderInput');
 
 ['dragenter','dragover'].forEach(e=>{uploadArea.addEventListener(e,ev=>{ev.preventDefault();uploadArea.classList.add('dragover')})});
 ['dragleave','drop'].forEach(e=>{uploadArea.addEventListener(e,ev=>{ev.preventDefault();uploadArea.classList.remove('dragover')})});
-uploadArea.addEventListener('drop',e=>{e.preventDefault();handleFiles(e.dataTransfer.files)});
-fileInput.addEventListener('change',e=>{handleFiles(e.target.files)});
+uploadArea.addEventListener('drop',function(e){
+  e.preventDefault();
+  var items = e.dataTransfer.items;
+  if(items && items.length && items[0].webkitGetAsEntry){
+    readDropEntries(items).then(function(files){ handleFiles(files); });
+  } else {
+    handleFiles(e.dataTransfer.files);
+  }
+});
+fileInput.addEventListener('change',function(e){handleFiles(e.target.files);e.target.value=''});
+folderInput.addEventListener('change',function(e){
+  var files = Array.from(e.target.files);
+  files = files.map(function(f){
+    return { file: f, path: f.webkitRelativePath || f.name };
+  });
+  handleFiles(files);
+  e.target.value = '';
+});
+
+function readDropEntries(dataTransferItems){
+  var entries = [];
+  for(var i=0;i<dataTransferItems.length;i++){
+    var entry = dataTransferItems[i].webkitGetAsEntry && dataTransferItems[i].webkitGetAsEntry();
+    if(entry) entries.push(entry);
+  }
+  return Promise.all(entries.map(function(e){ return walkEntry(e, ''); }))
+    .then(function(results){ return results.flat(); })
+    .catch(function(){ return []; });
+}
+function walkEntry(entry, basePath){
+  if(entry.isFile){
+    return new Promise(function(resolve){
+      try{
+        entry.file(function(file){ resolve([{ file: file, path: basePath || '' }]); });
+      }catch(e){ resolve([]); }
+    });
+  }
+  if(entry.isDirectory){
+    var reader = entry.createReader();
+    var nextBase = basePath ? basePath + '/' + entry.name : entry.name;
+    return new Promise(function(resolve){
+      var allEntries = [];
+      var timer = setTimeout(function(){ resolve([]); }, 30000);
+      function readBatch(){
+        try{
+          reader.readEntries(function(batch){
+            if(batch.length === 0){
+              clearTimeout(timer);
+              Promise.all(allEntries.map(function(e){
+                return walkEntry(e, nextBase);
+              })).then(function(r){ resolve(r.flat()); }).catch(function(){ resolve([]); });
+            } else {
+              allEntries = allEntries.concat(Array.from(batch));
+              readBatch();
+            }
+          }, function(){ clearTimeout(timer); resolve([]); });
+        }catch(e){ clearTimeout(timer); resolve([]); }
+      }
+      readBatch();
+    });
+  }
+  return Promise.resolve([]);
+}
 
 function formatSize(bytes){
   if(bytes===0) return '0 B';
@@ -751,19 +816,24 @@ function formatSize(bytes){
   return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i];
 }
 
-function uploadFile(file, onProgress){
+function uploadFile(file, filePath, onProgress){
   return new Promise(function(resolve, reject){
     var xhr = new XMLHttpRequest();
     xhr.open('POST', currentPath + '?action=upload');
+    xhr.timeout = 0; // no timeout for large files
+    var lastLoaded = 0, lastTime = Date.now();
     xhr.upload.onprogress = function(e){
       if(e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
+      lastLoaded = e.loaded; lastTime = Date.now();
     };
     xhr.onload = function(){
       if(xhr.status >= 200 && xhr.status < 300) resolve(xhr.status);
       else reject(new Error(xhr.responseText || '上传失败'));
     };
     xhr.onerror = function(){ reject(new Error('网络错误')); };
+    xhr.ontimeout = function(){ reject(new Error('上传超时')); };
     var fd = new FormData();
+    if(filePath) fd.append('path', filePath);
     fd.append('file', file);
     xhr.send(fd);
   });
@@ -771,55 +841,91 @@ function uploadFile(file, onProgress){
 
 async function handleFiles(files){
   if(!files.length) return;
+  closeModal('uploadModal');
+  // Normalize
+  var items = [];
+  for(var i=0;i<files.length;i++){
+    var f = files[i];
+    if(f.file){ items.push(f); }
+    else { items.push({ file: f, path: '' }); }
+  }
   var progress = document.getElementById('uploadProgress');
   var bar = document.getElementById('progressBar');
   var text = document.getElementById('progressText');
   progress.style.display = 'block';
   var totalSize = 0;
-  for(var i=0;i<files.length;i++) totalSize += files[i].size;
+  for(var i=0;i<items.length;i++) totalSize += items[i].file.size;
   var uploadedSize = 0;
+  var isBulk = items.length > 50;
 
-  // Add to floating transfer panel
+  // Transfer panel: single summary item for bulk, individual for small batches
+  var summaryId = null;
   var tpIds = [];
-  for(var i=0;i<files.length;i++){
-    tpIds.push(addTransferItem({ name: files[i].name, size: files[i].size, type: 'upload' }));
-  }
-
-  var okCount = 0, failCount = 0;
-  for(var i=0;i<files.length;i++){
-    var file = files[i];
-    var idx = i+1;
-    updateTransferItem(tpIds[i], { status: 'active', detail: formatSize(file.size) });
-    text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name;
-    bar.value = totalSize ? uploadedSize/totalSize : i/files.length;
-    try{
-      await uploadFile(file, function(loaded, total){
-        var pct = totalSize ? Math.round((uploadedSize + loaded) / totalSize * 100) : Math.round(idx/files.length*100);
-        bar.value = pct / 100;
-        text.textContent = '上传 ' + idx + '/' + files.length + '  ' + file.name + '  ' + formatSize(loaded) + '/' + formatSize(total);
-        updateTransferItem(tpIds[i], { progress: total ? loaded/total*100 : 0, detail: formatSize(loaded) + '/' + formatSize(total) });
-      });
-      uploadedSize += file.size;
-      updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: '完成' });
-      okCount++;
-    }catch(e){
-      updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '上传失败' });
-      failCount++;
+  if(isBulk){
+    var folderName = items[0].path ? items[0].path.split('/')[0] : '文件';
+    summaryId = addTransferItem({ name: folderName + ' (' + items.length + ' 个文件)', size: totalSize, type: 'upload' });
+  } else {
+    for(var i=0;i<items.length;i++){
+      var it = items[i];
+      tpIds.push(addTransferItem({ name: it.path || it.file.name, size: it.file.size, type: 'upload' }));
     }
   }
-  bar.value = 1;
+
+  await new Promise(function(r){ setTimeout(r, 50); });
+
+  var okCount = 0, failCount = 0;
+  var CONCURRENCY = 6;
+  var idx = 0;
+  var lastUpdate = 0;
+
+  function updateProgress(){
+    var now = Date.now();
+    if(now - lastUpdate < 100) return; // throttle DOM updates
+    lastUpdate = now;
+    var pct = totalSize ? Math.round(uploadedSize / totalSize * 100) : Math.round(okCount / items.length * 100);
+    if(bar) bar.value = pct / 100;
+    if(text) text.textContent = okCount + '/' + items.length + '  ' + pct + '%';
+    if(summaryId) updateTransferItem(summaryId, { progress: pct, detail: okCount + '/' + items.length + '  ' + formatSize(uploadedSize) + '/' + formatSize(totalSize) });
+  }
+
+  function next(){
+    if(idx >= items.length) return Promise.resolve();
+    var i = idx++;
+    var it = items[i];
+    var file = it.file;
+    var filePath = it.path;
+    if(!isBulk) updateTransferItem(tpIds[i], { status: 'active', detail: formatSize(file.size) });
+    return uploadFile(file, filePath, function(loaded, total){
+      if(!isBulk) updateTransferItem(tpIds[i], { progress: total ? loaded/total*100 : 0, detail: formatSize(loaded) + '/' + formatSize(total) });
+    }).then(function(){
+      uploadedSize += file.size;
+      if(!isBulk) updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: '完成' });
+      okCount++;
+      updateProgress();
+      return next();
+    }).catch(function(e){
+      if(!isBulk) updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '上传失败' });
+      failCount++;
+      return next();
+    });
+  }
+
+  var workers = [];
+  for(var w=0; w<Math.min(CONCURRENCY, items.length); w++) workers.push(next());
+  await Promise.all(workers);
+
+  if(bar) bar.value = 1;
+  if(summaryId) updateTransferItem(summaryId, { status: failCount ? 'error' : 'done', progress: 100, detail: failCount ? '成功' + okCount + '，失败' + failCount : '完成' });
   if(failCount === 0){
-    text.textContent = '上传完成！共 ' + files.length + ' 个文件';
+    if(text) text.textContent = '上传完成！共 ' + items.length + ' 个文件';
     showToast('上传完成，共 ' + okCount + ' 个文件', 'success');
   } else {
-    text.textContent = '上传结束：成功 ' + okCount + '，失败 ' + failCount;
+    if(text) text.textContent = '上传结束：成功 ' + okCount + '，失败 ' + failCount;
     showToast('上传结束：成功 ' + okCount + '，失败 ' + failCount, 'info');
   }
-  // Auto-remove completed items after 5s
-  setTimeout(function(){
-    tpIds.forEach(function(id){ removeTransferItem(id); });
-  }, 5000);
-  setTimeout(function(){ location.reload(); }, failCount > 0 ? 3000 : 800);
+  var allIds = summaryId ? [summaryId] : tpIds;
+  setTimeout(function(){ allIds.forEach(function(id){ removeTransferItem(id); }); }, 10000);
+  setTimeout(function(){ location.reload(); }, failCount > 0 ? 3000 : 2000);
 }
 
 async function createFolder(){
@@ -1247,6 +1353,14 @@ function toggleTransferPanel() {
 window.addEventListener('load', function(){
   try{ renderClipboard(); }catch(e){ console.error('renderClipboard error:', e); }
   refreshIcons();
+  // Fetch directory size asynchronously
+  fetch(currentPath + '?action=dirsize').then(function(r){ return r.json(); }).then(function(d){
+    var pill = document.getElementById('dirSizePill');
+    if(pill) pill.innerHTML = '占用 <b>' + formatSize(d.size) + '</b>（' + d.files + ' 文件，' + d.dirs + ' 文件夹）';
+  }).catch(function(){
+    var pill = document.getElementById('dirSizePill');
+    if(pill) pill.innerHTML = '<b>-</b>';
+  });
 });
 // Also try immediately
 try{ renderClipboard(); }catch(e){}
