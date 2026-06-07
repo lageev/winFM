@@ -34,7 +34,13 @@
       "PowerShell(Get-Process *)",
       "PowerShell(Stop-Process *)",
       "Bash(Start-Sleep -Seconds 5)",
-      "Bash(powershell.exe *)"
+      "Bash(powershell.exe *)",
+      "Bash(docker info *)",
+      "Bash(findstr \"Username\")",
+      "Bash(docker build *)",
+      "Bash(docker tag *)",
+      "Bash(findstr winfm *)",
+      "Bash(docker push *)"
     ]
   }
 }

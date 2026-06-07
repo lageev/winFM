@@ -1,5 +1,5 @@
-$src = "C:\Users\fring\fm-docker\src"
-$root = "C:\Users\fring\fm-docker"
+$src = Join-Path $PSScriptRoot "src"
+$root = $PSScriptRoot
 
 $watcher = New-Object System.IO.FileSystemWatcher
 $watcher.Path = $src
@@ -20,7 +20,7 @@ $handler = {
     $global:lastBuild = $now
     $ts = Get-Date -Format "HH:mm:ss"
     Write-Host "[$ts] Change detected, rebuilding..."
-    Set-Location "C:\Users\fring\fm-docker"
+    Set-Location $root
     docker compose up -d --build 2>&1 | Write-Host
     $ts = Get-Date -Format "HH:mm:ss"
     Write-Host "[$ts] Done."
