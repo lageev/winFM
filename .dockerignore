@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+docker-compose.yml
+.dockerignore
+Dockerfile
+watch-deploy.ps1
+.claude
