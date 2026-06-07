@@ -4,6 +4,8 @@
 
 📦 **Docker Hub 镜像**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
 
+🌐 **语言**: [English](README.en.md) | [中文](README.md)
+
 ## 🖼️ 示例图
 
 ![winFM 示例图](IMG_0913.jpeg)
