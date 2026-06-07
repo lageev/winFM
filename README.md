@@ -121,6 +121,42 @@ ports:
   - "8080:8888"  # 改为 8080 端口
 ```
 
+### 本地配置（不同步到远程仓库）
+
+如果你需要保留本地特定的配置（如挂载路径、端口等），可以创建本地配置文件：
+
+```bash
+# 复制配置文件为本地版本
+cp docker-compose.yml docker-compose.local.yml
+cp watch-deploy.ps1 watch-deploy.local.ps1
+```
+
+然后编辑 `docker-compose.local.yml` 修改为你本地的路径：
+
+```yaml
+services:
+  file-manager:
+    image: lagee/winfm:latest
+    container_name: file-manager
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      - D:/your/local/path:/data  # 修改为你本地的路径
+```
+
+使用本地配置运行：
+
+```bash
+# 使用本地配置文件启动
+docker compose -f docker-compose.local.yml up -d
+
+# 使用本地监控脚本
+.\watch-deploy.local.ps1
+```
+
+> **注意**: `*.local.yml` 和 `*.local.ps1` 文件已被 `.gitignore` 忽略，不会同步到远程仓库。
+
 ## 🛠️ 技术栈
 
 - **运行时**: Node.js 20 (Alpine)
