@@ -2,6 +2,8 @@
 
 基于 Docker 的轻量级 Web 文件管理器，单文件 Node.js 实现，无外部依赖。
 
+📦 **Docker Hub 镜像**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
+
 ## ✨ 功能特性
 
 ### 📂 文件管理
@@ -38,7 +40,46 @@
 
 ## 🚀 快速开始
 
+### 使用 Docker Hub 镜像（最快）
+
+```bash
+# 直接拉取预构建镜像
+docker pull lagee/winfm:latest
+
+# 运行容器
+docker run -d \
+  --name file-manager \
+  -p 8888:8888 \
+  -v /your/local/path:/data \
+  lagee/winfm:latest
+
+# 访问
+# http://localhost:8888
+```
+
 ### 使用 Docker Compose（推荐）
+
+创建 `docker-compose.yml` 文件：
+
+```yaml
+services:
+  file-manager:
+    image: lagee/winfm:latest
+    container_name: file-manager
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      - /your/local/path:/data
+```
+
+然后运行：
+
+```bash
+docker compose up -d
+```
+
+### 从源码构建
 
 ```bash
 # 克隆仓库
@@ -48,22 +89,9 @@ cd winFM
 # 构建并启动
 docker compose up -d
 
-# 访问
-# http://localhost:8888
-```
-
-### 使用 Docker
-
-```bash
-# 构建镜像
+# 或者手动构建
 docker build -t winfm .
-
-# 运行容器
-docker run -d \
-  --name file-manager \
-  -p 8888:8888 \
-  -v /your/local/path:/data \
-  winfm
+docker run -d -p 8888:8888 -v /your/local/path:/data winfm
 ```
 
 ## ⚙️ 配置
@@ -75,7 +103,7 @@ docker run -d \
 ```yaml
 services:
   file-manager:
-    build: .
+    image: lagee/winfm:latest
     container_name: file-manager
     restart: unless-stopped
     ports:
