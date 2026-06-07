@@ -4,6 +4,10 @@
 
 📦 **Docker Hub 镜像**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
 
+## 🖼️ 示例图
+
+![winFM 示例图](IMG_0913.jpeg)
+
 ## ✨ 功能特性
 
 ### 📂 文件管理
