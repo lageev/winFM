@@ -676,10 +676,9 @@ async function batchDownload(){
   var names = Array.from(selectedItems);
   if(!names.length) return;
 
-  var tpIds = [];
-  for(var i=0;i<names.length;i++){
-    tpIds.push(addTransferItem({ name: names[i], size: 0, type: 'download', detail: '等待中' }));
-  }
+  var tpIds = addTransferItems(names.map(function(name){
+    return { name: name, size: 0, type: 'download', detail: '等待中' };
+  }));
   showToast('开始下载 '+names.length+' 项...', 'info');
 
   for(var i=0;i<names.length;i++){
@@ -701,7 +700,7 @@ async function batchDownload(){
   }
 
   showToast('全部下载已触发，共 '+names.length+' 个文件', 'success');
-  setTimeout(function(){ tpIds.forEach(function(id){ removeTransferItem(id); }); }, 5000);
+  setTimeout(function(){ removeTransferItems(tpIds); }, 5000);
 }
 
 async function batchDelete(){
@@ -761,7 +760,9 @@ fileInput.addEventListener('change',function(e){handleFiles(e.target.files);e.ta
 folderInput.addEventListener('change',function(e){
   var files = Array.from(e.target.files);
   files = files.map(function(f){
-    return { file: f, path: f.webkitRelativePath || f.name };
+    var relPath = f.webkitRelativePath || '';
+    var dirPath = relPath && relPath.indexOf('/') >= 0 ? relPath.split('/').slice(0, -1).join('/') : '';
+    return { file: f, path: dirPath };
   });
   handleFiles(files);
   e.target.value = '';
@@ -859,7 +860,8 @@ async function handleFiles(files){
   var totalSize = 0;
   for(var i=0;i<items.length;i++) totalSize += items[i].file.size;
   var uploadedSize = 0;
-  var isBulk = items.length > 50;
+  var inFlightLoaded = {};
+  var isBulk = items.length > 20;
 
   // Transfer panel: single summary item for bulk, individual for small batches
   var summaryId = null;
@@ -868,27 +870,34 @@ async function handleFiles(files){
     var folderName = items[0].path ? items[0].path.split('/')[0] : '文件';
     summaryId = addTransferItem({ name: folderName + ' (' + items.length + ' 个文件)', size: totalSize, type: 'upload' });
   } else {
-    for(var i=0;i<items.length;i++){
-      var it = items[i];
-      tpIds.push(addTransferItem({ name: it.path || it.file.name, size: it.file.size, type: 'upload' }));
-    }
+    tpIds = addTransferItems(items.map(function(it){
+      return { name: it.path ? it.path + '/' + it.file.name : it.file.name, size: it.file.size, type: 'upload' };
+    }));
   }
 
   await new Promise(function(r){ setTimeout(r, 50); });
 
   var okCount = 0, failCount = 0;
-  var CONCURRENCY = 6;
+  var avgSize = items.length ? totalSize / items.length : 0;
+  var CONCURRENCY = avgSize > 100 * 1024 * 1024 ? 2 : (items.length > 20 ? 4 : 6);
   var idx = 0;
   var lastUpdate = 0;
 
-  function updateProgress(){
+  function getUploadedBytes(){
+    var bytes = uploadedSize;
+    for(var k in inFlightLoaded) bytes += inFlightLoaded[k];
+    return Math.min(bytes, totalSize);
+  }
+
+  function updateProgress(force){
     var now = Date.now();
-    if(now - lastUpdate < 100) return; // throttle DOM updates
+    if(!force && now - lastUpdate < 100) return; // throttle DOM updates
     lastUpdate = now;
-    var pct = totalSize ? Math.round(uploadedSize / totalSize * 100) : Math.round(okCount / items.length * 100);
+    var currentBytes = getUploadedBytes();
+    var pct = totalSize ? Math.round(currentBytes / totalSize * 100) : Math.round(okCount / items.length * 100);
     if(bar) bar.value = pct / 100;
     if(text) text.textContent = okCount + '/' + items.length + '  ' + pct + '%';
-    if(summaryId) updateTransferItem(summaryId, { progress: pct, detail: okCount + '/' + items.length + '  ' + formatSize(uploadedSize) + '/' + formatSize(totalSize) });
+    if(summaryId) updateTransferItem(summaryId, { progress: pct, detail: okCount + '/' + items.length + '  ' + formatSize(currentBytes) + '/' + formatSize(totalSize) });
   }
 
   function next(){
@@ -897,18 +906,30 @@ async function handleFiles(files){
     var it = items[i];
     var file = it.file;
     var filePath = it.path;
+    var lastItemUpdate = 0;
     if(!isBulk) updateTransferItem(tpIds[i], { status: 'active', detail: formatSize(file.size) });
     return uploadFile(file, filePath, function(loaded, total){
-      if(!isBulk) updateTransferItem(tpIds[i], { progress: total ? loaded/total*100 : 0, detail: formatSize(loaded) + '/' + formatSize(total) });
+      inFlightLoaded[i] = loaded;
+      updateProgress(false);
+      if(!isBulk){
+        var now = Date.now();
+        if(now - lastItemUpdate >= 150 || loaded === total){
+          lastItemUpdate = now;
+          updateTransferItem(tpIds[i], { progress: total ? loaded/total*100 : 0, detail: formatSize(loaded) + '/' + formatSize(total) });
+        }
+      }
     }).then(function(){
+      delete inFlightLoaded[i];
       uploadedSize += file.size;
       if(!isBulk) updateTransferItem(tpIds[i], { status: 'done', progress: 100, detail: '完成' });
       okCount++;
-      updateProgress();
+      updateProgress(true);
       return next();
     }).catch(function(e){
+      delete inFlightLoaded[i];
       if(!isBulk) updateTransferItem(tpIds[i], { status: 'error', detail: e.message || '上传失败' });
       failCount++;
+      updateProgress(true);
       return next();
     });
   }
@@ -927,7 +948,7 @@ async function handleFiles(files){
     showToast('上传结束：成功 ' + okCount + '，失败 ' + failCount, 'info');
   }
   var allIds = summaryId ? [summaryId] : tpIds;
-  setTimeout(function(){ allIds.forEach(function(id){ removeTransferItem(id); }); }, 10000);
+  setTimeout(function(){ removeTransferItems(allIds); }, 10000);
   setTimeout(function(){ location.reload(); }, failCount > 0 ? 3000 : 2000);
 }
 
@@ -1168,9 +1189,9 @@ var transferItems = [];
 var transferIdCounter = 0;
 var tpCollapsed = false;
 
-function addTransferItem(opts) {
+function createTransferItem(opts) {
   var id = ++transferIdCounter;
-  var item = {
+  return {
     id: id,
     name: opts.name || '',
     size: opts.size || 0,
@@ -1180,27 +1201,44 @@ function addTransferItem(opts) {
     detail: opts.detail || '',
     el: null
   };
+}
+
+function addTransferItem(opts) {
+  var item = createTransferItem(opts);
   transferItems.push(item);
   renderTransferPanel();
   showTransferPanel();
-  return id;
+  return item.id;
+}
+function addTransferItems(items) {
+  var ids = [];
+  for (var i = 0; i < items.length; i++) {
+    var item = createTransferItem(items[i]);
+    transferItems.push(item);
+    ids.push(item.id);
+  }
+  renderTransferPanel();
+  showTransferPanel();
+  return ids;
 }
 function updateTransferItem(id, updates) {
+  var item = null;
   for (var i = 0; i < transferItems.length; i++) {
     if (transferItems[i].id === id) {
       for (var k in updates) transferItems[i][k] = updates[k];
+      item = transferItems[i];
       break;
     }
   }
-  // If only progress/detail changed (no status change), do a lightweight DOM update
-  if ('status' in updates) {
-    renderTransferPanel();
-  } else {
-    renderTransferProgress(id);
-  }
+  if (item) renderTransferProgress(id);
 }
 function removeTransferItem(id) {
-  transferItems = transferItems.filter(function(t) { return t.id !== id; });
+  removeTransferItems([id]);
+}
+function removeTransferItems(ids) {
+  var idSet = {};
+  for (var i = 0; i < ids.length; i++) idSet[ids[i]] = true;
+  transferItems = transferItems.filter(function(t) { return !idSet[t.id]; });
   renderTransferPanel();
   if (!transferItems.length) hideTransferPanel();
 }
@@ -1334,7 +1372,11 @@ function renderTransferProgress(id) {
   for (var i = 0; i < transferItems.length; i++) {
     if (transferItems[i].id === id) { item = transferItems[i]; break; }
   }
-  if (item) updateItemDom(item);
+  if (item) {
+    var el = document.querySelector('.tp-item[data-tid="' + item.id + '"]');
+    if (el) updateItemDom(item);
+    else fullRenderBody();
+  }
 }
 function showTransferPanel() {
   var p = document.getElementById('transferPanel');

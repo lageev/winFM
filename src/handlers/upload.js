@@ -1,139 +1,122 @@
 const fs = require('fs');
 const path = require('path');
-const { safeUploadedFilename, safeChildPath, isInside, safeName } = require('../utils');
-const { ROOT } = require('../config');
+const { pipeline } = require('stream');
+const Busboy = require('busboy');
+const { safeUploadedFilename, safeChildPath, safeName } = require('../utils');
+
+function safeFolderPath(raw) {
+  if (typeof raw !== 'string' || !raw) return '';
+  const parts = raw.replace(/\\/g, '/').split('/').filter(Boolean);
+  return parts.map(safeName).filter(Boolean).join('/');
+}
 
 function handleUpload(req, res, fp) {
-  const contentType = req.headers['content-type'] || '';
-  const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
-  const boundary = boundaryMatch && (boundaryMatch[1] || boundaryMatch[2]);
-  if (!boundary) { res.writeHead(400); res.end('Bad request'); return; }
+  let busboy;
+  try {
+    busboy = Busboy({
+      headers: req.headers,
+      limits: {
+        files: 1,
+        fields: 5,
+        parts: 10,
+        fieldSize: 4096,
+      },
+    });
+  } catch (_) {
+    res.writeHead(400);
+    res.end('Bad request');
+    return;
+  }
 
-  const boundaryBuf = Buffer.from('--' + boundary);
-  const delimiter = Buffer.from('\r\n--' + boundary);
-  let leftover = Buffer.alloc(0);
-  let fileStream = null;
   let folderPath = '';
-  let parsing = 'boundary'; // boundary | header | body | done
+  let seenFile = false;
+  let parsingDone = false;
+  let pendingWrites = 0;
+  let responded = false;
+  const writeStreams = new Set();
 
-  const cleanup = () => {
-    if (fileStream) { try { fileStream.end(); } catch (_) {} fileStream = null; }
-  };
+  function respond(status, body, headers) {
+    if (responded || res.writableEnded) return;
+    responded = true;
+    res.writeHead(status, headers || {});
+    res.end(body);
+  }
 
-  const safeFolderPath = (raw) => {
-    if (typeof raw !== 'string' || !raw) return '';
-    const parts = raw.replace(/\\/g, '/').split('/').filter(Boolean);
-    const safe = parts.filter(p => p !== '.' && p !== '..' && p !== '');
-    return safe.join('/');
-  };
-
-  req.on('data', chunk => {
-    if (parsing === 'done') return;
-    leftover = leftover.length ? Buffer.concat([leftover, chunk]) : chunk;
-
-    while (leftover.length > 0) {
-      if (parsing === 'boundary') {
-        const idx = leftover.indexOf(boundaryBuf);
-        if (idx < 0) {
-          leftover = leftover.slice(Math.max(0, leftover.length - boundaryBuf.length));
-          break;
-        }
-        let pos = idx + boundaryBuf.length;
-        if (pos + 1 < leftover.length && leftover[pos] === 0x2d && leftover[pos + 1] === 0x2d) {
-          parsing = 'done';
-          leftover = Buffer.alloc(0);
-          break;
-        }
-        if (pos + 1 < leftover.length && leftover[pos] === 0x0d && leftover[pos + 1] === 0x0a) pos += 2;
-        leftover = leftover.slice(pos);
-        parsing = 'header';
-      }
-
-      if (parsing === 'header') {
-        const headerEnd = leftover.indexOf(Buffer.from('\r\n\r\n'));
-        if (headerEnd < 0) break;
-        const header = leftover.slice(0, headerEnd).toString('utf8');
-        const filenameMatch = header.match(/filename="([^"]+)"/);
-        const nameMatch = header.match(/name="([^"]+)"/);
-        const fieldName = nameMatch ? nameMatch[1] : '';
-
-        if (filenameMatch) {
-          const filename = safeUploadedFilename(filenameMatch[1]);
-          if (!filename) {
-            parsing = 'done';
-            res.writeHead(400);
-            res.end('Invalid filename');
-            cleanup();
-            return;
-          }
-          const sub = safeFolderPath(folderPath);
-          const baseDir = sub ? path.join(fp, sub) : fp;
-          try { fs.mkdirSync(baseDir, { recursive: true }); } catch (_) {}
-          const destPath = safeChildPath(baseDir, filename);
-          if (!destPath) {
-            parsing = 'done';
-            res.writeHead(400);
-            res.end('Invalid filename');
-            cleanup();
-            return;
-          }
-          fileStream = fs.createWriteStream(destPath);
-        } else if (fieldName === 'path') {
-          // This is the path form field; read its content in body phase
-          fileStream = null;
-        } else {
-          fileStream = null;
-        }
-        leftover = leftover.slice(headerEnd + 4);
-        parsing = 'body';
-      }
-
-      if (parsing === 'body') {
-        const delimIdx = leftover.indexOf(delimiter);
-        if (delimIdx >= 0) {
-          const partData = leftover.slice(0, delimIdx);
-          if (fileStream) {
-            fileStream.write(partData);
-            fileStream.end();
-            fileStream = null;
-          } else {
-            // Non-file field (e.g. path)
-            folderPath = partData.toString('utf8').trim();
-          }
-          leftover = leftover.slice(delimIdx + delimiter.length);
-          if (leftover.length >= 2 && leftover[0] === 0x2d && leftover[1] === 0x2d) {
-            parsing = 'done';
-            leftover = Buffer.alloc(0);
-            break;
-          }
-          if (leftover.length >= 2 && leftover[0] === 0x0d && leftover[1] === 0x0a) {
-            leftover = leftover.slice(2);
-          }
-          parsing = 'header';
-        } else {
-          const safeLen = Math.max(0, leftover.length - delimiter.length);
-          if (safeLen > 0) {
-            if (fileStream) fileStream.write(leftover.slice(0, safeLen));
-            else folderPath += leftover.slice(0, safeLen).toString('utf8');
-            leftover = leftover.slice(safeLen);
-          }
-          break;
-        }
-      }
+  function fail(status, body) {
+    for (const stream of writeStreams) {
+      try { stream.destroy(); } catch (_) {}
     }
+    respond(status, body);
+  }
+
+  function maybeFinish() {
+    if (!parsingDone || pendingWrites > 0 || responded) return;
+    if (!seenFile) {
+      respond(400, 'No file');
+      return;
+    }
+    respond(200, 'OK', { 'Content-Type': 'text/plain' });
+  }
+
+  busboy.on('field', (name, value) => {
+    if (name === 'path') folderPath = value;
   });
 
-  req.on('end', () => {
-    cleanup();
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('OK');
+  busboy.on('file', (name, file, info) => {
+    const filename = safeUploadedFilename(info && info.filename);
+    if (!filename) {
+      file.resume();
+      fail(400, 'Invalid filename');
+      return;
+    }
+
+    const sub = safeFolderPath(folderPath);
+    const baseDir = sub ? path.join(fp, sub) : fp;
+    let destPath;
+
+    try {
+      fs.mkdirSync(baseDir, { recursive: true });
+      destPath = safeChildPath(baseDir, filename);
+    } catch (_) {
+      file.resume();
+      fail(500, 'Upload error');
+      return;
+    }
+
+    if (!destPath) {
+      file.resume();
+      fail(400, 'Invalid filename');
+      return;
+    }
+
+    seenFile = true;
+    pendingWrites++;
+    const out = fs.createWriteStream(destPath, { highWaterMark: 256 * 1024 });
+    writeStreams.add(out);
+
+    pipeline(file, out, (err) => {
+      writeStreams.delete(out);
+      pendingWrites--;
+      if (err) {
+        try { fs.unlinkSync(destPath); } catch (_) {}
+        fail(500, 'Upload error');
+        return;
+      }
+      maybeFinish();
+    });
   });
 
-  req.on('error', () => {
-    cleanup();
-    res.writeHead(500);
-    res.end('Upload error');
+  busboy.on('filesLimit', () => fail(400, 'Too many files'));
+  busboy.on('fieldsLimit', () => fail(400, 'Too many fields'));
+  busboy.on('partsLimit', () => fail(400, 'Too many parts'));
+  busboy.on('error', () => fail(400, 'Bad request'));
+  busboy.on('close', () => {
+    parsingDone = true;
+    maybeFinish();
   });
+
+  req.on('error', () => fail(500, 'Upload error'));
+  req.pipe(busboy);
 }
 
 module.exports = { handleUpload };

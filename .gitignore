@@ -1,6 +1,8 @@
 node_modules/
 .env
 *.log
+data/
+.DS_Store
 
 # 本地配置文件（不同步到远程仓库）
 *.local.yml

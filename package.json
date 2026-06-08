@@ -1,0 +1,12 @@
+{
+  "name": "winfm-file-manager",
+  "version": "1.0.0",
+  "private": true,
+  "main": "file-manager.js",
+  "scripts": {
+    "start": "node file-manager.js"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0"
+  }
+}
