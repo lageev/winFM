@@ -48,7 +48,10 @@ function getHTML(list, rp, msg, sortField, sortDir, groupDirs) {
     const mtime = i.mtime ? new Date(i.mtime).toLocaleString('zh-CN') : '-';
     const encodedName = encodeURIComponent(i.name);
     const dlBtn = i.isDir ? '' : '<md-icon-button href="' + encodedName + '?download=1" class="material-icon-button" aria-label="下载" title="下载"><md-icon>download</md-icon></md-icon-button>';
-    const previewBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + esc(i.name) + '" aria-label="预览" title="预览"><md-icon>visibility</md-icon></md-icon-button>';
+    const previewExts = ['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','tif','avif','mp4','webm','mkv','avi','mov','wmv','flv','m4v','mp3','wav','ogg','aac','flac','m4a','wma','opus','md','markdown','txt','json','js','css','html','htm','xml','yaml','yml','csv','log','ini','conf','sh','bash','py','rb','java','c','cpp','h','hpp','go','rs','ts','tsx','jsx','sql','toml','env','gitignore','dockerignore','dockerfile','makefile'];
+    const dot = i.name.lastIndexOf('.');
+    const ext = dot >= 0 ? i.name.slice(dot + 1).toLowerCase() : '';
+    const previewBtn = i.isDir || !previewExts.includes(ext) ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + esc(i.name) + '" aria-label="预览" title="预览"><md-icon>visibility</md-icon></md-icon-button>';
     const dn = esc(i.name);
     const shareBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="share" data-name="' + dn + '" aria-label="分享直链" title="分享直链"><md-icon>share</md-icon></md-icon-button>';
     return '<tr class="file-row" data-name="' + dn + '">' +
