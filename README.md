@@ -131,6 +131,31 @@ ports:
   - "8080:8888"  # 改为 8080 端口
 ```
 
+### 环境变量配置
+
+使用 `.env` 文件配置本地路径，方便不同环境使用不同配置：
+
+```bash
+# 复制模板并修改
+cp .env.example .env
+```
+
+编辑 `.env` 文件：
+
+```env
+# 数据目录的本地路径
+DATA_DIR=/your/local/path
+```
+
+`docker-compose.yml` 中使用 `${DATA_DIR}` 引用：
+
+```yaml
+volumes:
+  - ${DATA_DIR}:/data
+```
+
+> **注意**: `.env` 文件已被 `.gitignore` 忽略，不会同步到远程仓库。
+
 ### 访问认证（可选）
 
 设置 `FM_AUTH` 环境变量开启 Basic Auth：
@@ -175,6 +200,37 @@ docker compose -f docker-compose.local.yml up -d
 ```
 
 > **注意**: `*.local.yml` 和 `*.local.ps1` 文件已被 `.gitignore` 忽略，不会同步到远程仓库。
+
+### ⚠️ 目录权限问题
+
+容器以非 root 用户 `nodejs`(uid=1001) 运行。如果挂载的目录中存在由其他工具（如 Syncthing、Samba 等）创建的子目录，这些目录可能属于 root 且权限为 `755`，导致无法上传文件。
+
+**症状**: 根目录可上传，但某些子目录上传失败。
+
+**解决方法**: 在宿主机上修复权限：
+
+```bash
+# Linux/Mac
+chmod -R 777 /your/local/path
+
+# Windows (在容器内执行)
+docker exec -u root file-manager chmod -R 777 /data/
+```
+
+**或者**，在 `docker-compose.yml` 中以 root 用户运行（简单但安全性稍低）：
+
+```yaml
+services:
+  file-manager:
+    image: lagee/winfm:latest
+    container_name: file-manager
+    restart: unless-stopped
+    user: "0:0"  # 以 root 运行
+    ports:
+      - "8888:8888"
+    volumes:
+      - ${DATA_DIR}:/data
+```
 
 ## 🛠️ 技术栈
 
