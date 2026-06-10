@@ -1,54 +1,38 @@
 const fs = require('fs');
+const fsp = fs.promises;
 const path = require('path');
 const { isInside } = require('./utils');
+const { SIZE_CACHE_NAME } = require('./config');
 
-function copyRecursiveSync(src, dest) {
-  const st = fs.lstatSync(src);
-  if (st.isSymbolicLink()) {
-    throw new Error('不支持复制符号链接');
+// 可预览的扩展名分类（不带点），同时注入前端使用，保持单一来源
+// video 仅保留浏览器基本能播的格式
+const PREVIEW = {
+  image: ['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','tif','avif'],
+  video: ['mp4','webm','mkv','mov','m4v'],
+  audio: ['mp3','wav','ogg','aac','flac','m4a','opus'],
+  text: ['txt','md','markdown','log','csv','sql','json','js','ts','jsx','tsx','css','html','htm','xml',
+    'yaml','yml','toml','ini','cfg','conf','env','sh','bash','py','rb','java','c','cpp','h','hpp','go','rs',
+    'gitignore','dockerignore','dockerfile','makefile'],
+};
+
+function userError(msg) {
+  const e = new Error(msg);
+  e.expose = true;
+  return e;
+}
+
+async function copySafe(src, dest) {
+  const st = await fsp.lstat(src);
+  if (st.isSymbolicLink()) throw userError('不支持复制符号链接');
+  if (st.isDirectory() && isInside(path.resolve(src), path.resolve(dest))) {
+    throw userError('不能将目录复制到自身或子目录');
   }
-  if (st.isDirectory()) {
-    if (isInside(path.resolve(src), path.resolve(dest))) {
-      throw new Error('不能将目录复制到自身或子目录');
-    }
-    fs.mkdirSync(dest, { recursive: true });
-    for (const entry of fs.readdirSync(src)) {
-      copyRecursiveSync(path.join(src, entry), path.join(dest, entry));
-    }
-  } else if (st.isFile()) {
-    fs.copyFileSync(src, dest);
-  } else {
-    throw new Error('不支持复制该类型文件');
-  }
-}
-
-function isTextFile(ext) {
-  const textExts = [
-    '.txt','.md','.mdx','.log','.csv','.sql',
-    '.js','.ts','.jsx','.tsx','.vue','.svelte','.astro',
-    '.css','.scss','.sass','.less','.html','.htm',
-    '.json','.xml','.yaml','.yml','.toml','.ini','.cfg','.conf','.env',
-    '.py','.rb','.php','.java','.kt','.kts','.scala','.groovy','.gradle',
-    '.c','.cpp','.cc','.cxx','.h','.hpp','.cs',
-    '.go','.rs','.swift','.m','.mm','.r','.lua','.pl','.pm','.dart',
-    '.ex','.exs','.erl','.hs','.clj','.lisp',
-    '.sh','.bash','.zsh','.bat','.cmd','.ps1',
-    '.graphql','.gql','.proto','.tf',
-    '.dockerfile','.gitignore','.dockerignore','.editorconfig','.makefile','.cmake'
-  ];
-  return textExts.includes(ext) || ext === '.makefile';
-}
-
-function isImageFile(ext) {
-  return ['.jpg','.jpeg','.png','.gif','.webp','.svg','.bmp','.ico','.tiff','.tif','.avif'].includes(ext);
-}
-
-function isVideoFile(ext) {
-  return ['.mp4','.webm','.mkv','.avi','.mov','.wmv','.flv','.m4v','.ts','.mts','.3gp'].includes(ext);
-}
-
-function isAudioFile(ext) {
-  return ['.mp3','.wav','.ogg','.aac','.flac','.m4a','.wma','.opus'].includes(ext);
+  await fsp.cp(src, dest, {
+    recursive: true,
+    force: false,
+    errorOnExist: true,
+    filter: async (s) => !(await fsp.lstat(s)).isSymbolicLink(),
+  });
 }
 
 function getIcon(name, isDir) {
@@ -58,7 +42,7 @@ function getIcon(name, isDir) {
     // Images
     '.jpg':['image','green'],'.jpeg':['image','green'],'.png':['image','green'],'.gif':['image','green'],'.webp':['image','green'],'.svg':['image','green'],'.bmp':['image','green'],'.ico':['image','green'],'.tiff':['image','green'],'.tif':['image','green'],'.avif':['image','green'],
     // Video
-    '.mp4':['movie','violet'],'.webm':['movie','violet'],'.mkv':['movie','violet'],'.avi':['movie','violet'],'.mov':['movie','violet'],'.wmv':['movie','violet'],'.flv':['movie','violet'],'.m4v':['movie','violet'],'.ts':['movie','violet'],'.mts':['movie','violet'],'.3gp':['movie','violet'],
+    '.mp4':['movie','violet'],'.webm':['movie','violet'],'.mkv':['movie','violet'],'.avi':['movie','violet'],'.mov':['movie','violet'],'.wmv':['movie','violet'],'.flv':['movie','violet'],'.m4v':['movie','violet'],'.mts':['movie','violet'],'.3gp':['movie','violet'],
     // Audio
     '.mp3':['music_note','rose'],'.wav':['music_note','rose'],'.flac':['music_note','rose'],'.aac':['music_note','rose'],'.ogg':['music_note','rose'],'.m4a':['music_note','rose'],'.wma':['music_note','rose'],'.opus':['music_note','rose'],
     // Documents
@@ -85,7 +69,7 @@ function getIcon(name, isDir) {
     // Text
     '.txt':['description','blue'],'.md':['description','blue'],'.log':['description',''],
     // Executables / Installers
-    '.exe':['terminal',''],'.msi':['terminal',''],'.sh':['terminal',''],'.bat':['terminal',''],
+    '.exe':['terminal',''],'.msi':['terminal',''],
     '.apk':['android','green'],'.ipa':['phone_iphone','cyan'],'.dmg':['disc_full',''],'.pkg':['inventory_2',''],'.deb':['terminal',''],'.rpm':['terminal',''],'.appx':['desktop_windows','blue'],
     // Fonts
     '.ttf':['font_download','violet'],'.otf':['font_download','violet'],'.woff':['font_download','violet'],'.woff2':['font_download','violet'],'.eot':['font_download','violet'],
@@ -93,32 +77,6 @@ function getIcon(name, isDir) {
   const m = map[ext] || ['draft',''];
   return '<md-icon class="fic' + (m[1] ? ' fic-' + m[1] : '') + '">' + m[0] + '</md-icon>';
 }
-
-function getDirectorySize(dirPath) {
-  let total = 0;
-  let fileCount = 0;
-  let dirCount = 0;
-  const st = fs.lstatSync(dirPath);
-  if (!st.isDirectory()) return { size: st.size, files: 1, dirs: 0 };
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  for (const entry of entries) {
-    const full = path.join(dirPath, entry.name);
-    if (entry.isSymbolicLink()) continue;
-    if (entry.isDirectory()) {
-      dirCount++;
-      const sub = getDirectorySize(full);
-      total += sub.size;
-      fileCount += sub.files;
-      dirCount += sub.dirs;
-    } else if (entry.isFile()) {
-      total += fs.statSync(full).size;
-      fileCount++;
-    }
-  }
-  return { size: total, files: fileCount, dirs: dirCount };
-}
-
-const fsp = fs.promises;
 
 async function getDirectorySizeAsync(dirPath) {
   let total = 0, fileCount = 0, dirCount = 0;
@@ -133,7 +91,7 @@ async function getDirectorySizeAsync(dirPath) {
     const batch = entries.slice(i, i + 50);
     const results = await Promise.all(batch.map(async function(entry) {
       const full = path.join(dirPath, entry.name);
-      if (entry.isSymbolicLink()) return null;
+      if (entry.isSymbolicLink() || entry.name === SIZE_CACHE_NAME) return null;
       try {
         const st = await fsp.lstat(full);
         if (st.isDirectory()) {
@@ -155,4 +113,4 @@ async function getDirectorySizeAsync(dirPath) {
   return { size: total, files: fileCount, dirs: dirCount };
 }
 
-module.exports = { copyRecursiveSync, isTextFile, isImageFile, isVideoFile, isAudioFile, getIcon, getDirectorySize, getDirectorySizeAsync };
+module.exports = { PREVIEW, copySafe, getIcon, getDirectorySizeAsync };

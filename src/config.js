@@ -1,14 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 8888;
-const ROOT = path.resolve('/data');
+const PORT = Number(process.env.FM_PORT) || 8888;
+const ROOT = path.resolve(process.env.FM_ROOT || '/data');
 try { fs.mkdirSync(ROOT, { recursive: true }); } catch(e) {}
 const REAL_ROOT = fs.realpathSync(ROOT);
+
+// 可选 Basic Auth，格式 "user:pass"，为空则不启用
+const AUTH = process.env.FM_AUTH || '';
+
+// 目录大小缓存文件名（存放于 ROOT 下，列表中隐藏）
+const SIZE_CACHE_NAME = '.dirsize-cache.json';
 
 const MIME = {
   // Web
   '.html':'text/html;charset=utf-8',
+  '.htm':'text/html;charset=utf-8',
   '.css':'text/css',
   '.js':'application/javascript',
   '.json':'application/json',
@@ -35,7 +42,6 @@ const MIME = {
   '.wmv':'video/x-ms-wmv',
   '.flv':'video/x-flv',
   '.m4v':'video/mp4',
-  '.ts':'video/mp2t',
   '.mts':'video/mp2t',
   '.3gp':'video/3gpp',
   // Audio
@@ -138,14 +144,9 @@ const MIME = {
   '.vue':'text/plain',
   '.svelte':'text/plain',
   '.astro':'text/plain',
-  '.css':'text/css',
   '.scss':'text/plain',
   '.sass':'text/plain',
   '.less':'text/plain',
-  '.html':'text/html;charset=utf-8',
-  '.htm':'text/html;charset=utf-8',
-  '.json':'application/json',
-  '.xml':'text/xml',
   '.graphql':'text/plain',
   '.gql':'text/plain',
   '.proto':'text/plain',
@@ -158,4 +159,4 @@ const MIME = {
   '.cmake':'text/plain',
 };
 
-module.exports = { PORT, ROOT, REAL_ROOT, MIME };
+module.exports = { PORT, ROOT, REAL_ROOT, AUTH, SIZE_CACHE_NAME, MIME };

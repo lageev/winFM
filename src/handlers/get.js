@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { pathExists, realPathInsideRoot, attachmentDisposition } = require('../utils');
-const { MIME } = require('../config');
+const { MIME, SIZE_CACHE_NAME } = require('../config');
 const { getHTML } = require('../template');
 
 function handleGet(req, res, url, rp, fp) {
@@ -24,12 +25,14 @@ function handleGet(req, res, url, rp, fp) {
 
     let items = [];
     try {
-      items = fs.readdirSync(fp, { withFileTypes: true }).map(e => {
-        const itemPath = path.join(fp, e.name);
-        let size = 0, mtime = null;
-        try { const s = fs.lstatSync(itemPath); size = s.size; mtime = s.mtime; } catch(ex) {}
-        return { name: e.name, isDir: e.isDirectory(), size, mtime };
-      });
+      items = fs.readdirSync(fp, { withFileTypes: true })
+        .filter(e => !(rp === '/' && e.name === SIZE_CACHE_NAME))
+        .map(e => {
+          const itemPath = path.join(fp, e.name);
+          let size = 0, mtime = null;
+          try { const s = fs.lstatSync(itemPath); size = s.size; mtime = s.mtime; } catch(ex) {}
+          return { name: e.name, isDir: e.isDirectory(), size, mtime };
+        });
     } catch(e) {}
 
     let sortField = url.searchParams.get('sort') || 'name';
@@ -42,25 +45,49 @@ function handleGet(req, res, url, rp, fp) {
       let cmp = 0;
       if (sortField === 'size') cmp = a.size - b.size;
       else if (sortField === 'mtime') cmp = (a.mtime ? new Date(a.mtime).getTime() : 0) - (b.mtime ? new Date(b.mtime).getTime() : 0);
-      else cmp = a.name.localeCompare(b.name);
+      else cmp = a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
       return sortDir === 'desc' ? -cmp : cmp;
     });
 
-    const msgParam = url.searchParams.get('msg');
-    let msg = null;
-    if (msgParam === 'uploaded') msg = { type: 'success', text: '文件上传成功' };
-    else if (msgParam === 'deleted') msg = { type: 'success', text: '删除成功' };
-
-    res.writeHead(200, { 'Content-Type': 'text/html;charset=utf-8' });
-    res.end(getHTML(items, rp, msg, sortField, sortDir, groupDirs));
+    const html = getHTML(items, rp, sortField, sortDir, groupDirs);
+    const headers = { 'Content-Type': 'text/html;charset=utf-8', 'Cache-Control': 'no-cache' };
+    if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+      const gz = zlib.gzipSync(html);
+      headers['Content-Encoding'] = 'gzip';
+      headers['Content-Length'] = gz.length;
+      res.writeHead(200, headers);
+      res.end(gz);
+    } else {
+      res.writeHead(200, headers);
+      res.end(html);
+    }
     return;
   }
 
   // Serve file (streamed; supports HTTP Range for large files / resumable downloads)
   const ext = path.extname(fp).toLowerCase();
   const download = url.searchParams.get('download');
+  const etag = 'W/"' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
 
-  const headers = { 'Accept-Ranges': 'bytes' };
+  // 条件请求：内容未变化时返回 304（预览图片等不再重复传输）
+  if (!req.headers.range) {
+    const inm = req.headers['if-none-match'];
+    const ims = req.headers['if-modified-since'];
+    const notModified = inm
+      ? inm === etag
+      : (ims && Math.floor(st.mtimeMs / 1000) * 1000 <= Date.parse(ims));
+    if (notModified) {
+      res.writeHead(304, { 'ETag': etag, 'Last-Modified': st.mtime.toUTCString() });
+      res.end();
+      return;
+    }
+  }
+
+  const headers = {
+    'Accept-Ranges': 'bytes',
+    'ETag': etag,
+    'Last-Modified': st.mtime.toUTCString(),
+  };
   if (download) {
     headers['Content-Type'] = 'application/octet-stream';
     headers['Content-Disposition'] = attachmentDisposition(path.basename(fp));
@@ -72,7 +99,7 @@ function handleGet(req, res, url, rp, fp) {
   const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
   if (m && st.size > 0) {
     if (m[1] === '') { start = Math.max(st.size - Number(m[2]), 0); }
-    else { start = Number(m[1]); end = m[2] === '' ? end : Number(m[2]); }
+    else { start = Number(m[1]); end = m[2] === '' ? end : Math.min(Number(m[2]), st.size - 1); }
     if (!(start >= 0 && end < st.size && start <= end)) {
       res.writeHead(416, { 'Content-Range': 'bytes */' + st.size });
       res.end();

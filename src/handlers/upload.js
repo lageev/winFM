@@ -15,6 +15,8 @@ function handleUpload(req, res, fp) {
   try {
     busboy = Busboy({
       headers: req.headers,
+      // 浏览器发送的 multipart 文件名为 UTF-8 字节，默认 latin1 解析会导致中文乱码
+      defParamCharset: 'utf8',
       limits: {
         files: 1,
         fields: 5,
@@ -91,14 +93,19 @@ function handleUpload(req, res, fp) {
 
     seenFile = true;
     pendingWrites++;
-    const out = fs.createWriteStream(destPath, { highWaterMark: 256 * 1024 });
+    // 先写临时文件，成功后原子 rename 覆盖，失败不会损坏同名旧文件
+    const tmpPath = destPath + '.' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.part';
+    const out = fs.createWriteStream(tmpPath, { highWaterMark: 256 * 1024 });
     writeStreams.add(out);
 
     pipeline(file, out, (err) => {
       writeStreams.delete(out);
       pendingWrites--;
+      if (!err) {
+        try { fs.renameSync(tmpPath, destPath); } catch (e) { err = e; }
+      }
       if (err) {
-        try { fs.unlinkSync(destPath); } catch (_) {}
+        try { fs.unlinkSync(tmpPath); } catch (_) {}
         fail(500, 'Upload error');
         return;
       }

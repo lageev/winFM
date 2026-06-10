@@ -7,3 +7,6 @@ services:
       - "8888:8888"
     volumes:
       - ${DATA_DIR}:/data
+    environment:
+      # 可选：Basic Auth 访问认证，格式 user:pass
+      - FM_AUTH=${FM_AUTH:-}

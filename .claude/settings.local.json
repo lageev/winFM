@@ -40,7 +40,8 @@
       "Bash(docker build *)",
       "Bash(docker tag *)",
       "Bash(findstr winfm *)",
-      "Bash(docker push *)"
+      "Bash(docker push *)",
+      "Bash(git fetch *)"
     ]
   }
 }

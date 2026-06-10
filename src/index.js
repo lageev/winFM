@@ -1,5 +1,5 @@
 const http = require('http');
-const { PORT } = require('./config');
+const { PORT, ROOT } = require('./config');
 const { handle } = require('./handlers');
 
 process.on('uncaughtException', (e) => { console.error('uncaughtException:', e.message); });
@@ -12,4 +12,4 @@ const server = http.createServer((req, res) => {
   }
 });
 server.on('error', (e) => { console.error('server.error:', e.message); });
-server.listen(PORT, '0.0.0.0', () => console.log('📂 文件管理已启动 端口:' + PORT + ' 目录:/data'));
+server.listen(PORT, '0.0.0.0', () => console.log('文件管理已启动 端口:' + PORT + ' 目录:' + ROOT));

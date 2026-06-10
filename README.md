@@ -35,14 +35,18 @@
 - 📂 侧栏布局（包含目录树和常用目录书签，支持折叠/展开）
 
 ### 🎨 界面设计
-- 📱 响应式设计，完美支持移动端
-- 🎨 Material Design 3 橙色系主题（Material Web 组件 + Material Symbols 图标，自动适配深浅色）
-- ⌨️ 快捷键支持（ESC 关闭弹窗）
+- 📱 响应式设计，完美支持移动端（操作收纳进「更多」菜单）
+- 🎨 Material Design 3 橙色系主题（Material Web 组件 + Material Symbols 图标，自动适配深浅色，支持手动切换）
+- 🔍 当前目录即时过滤搜索
+- 🌐 组件与图标字体已内置本地化，离线 / 内网环境可用
+- ⌨️ 快捷键支持（ESC 关闭弹窗，预览中左右方向键切换文件）
 
 ### 🔒 安全特性
 - 路径遍历攻击防护
 - 文件名安全验证
 - 符号链接安全检查
+- CSRF 跨站请求防护
+- 可选 Basic Auth 访问认证（`FM_AUTH` 环境变量）
 
 ## 🚀 快速开始
 
@@ -127,6 +131,15 @@ ports:
   - "8080:8888"  # 改为 8080 端口
 ```
 
+### 访问认证（可选）
+
+设置 `FM_AUTH` 环境变量开启 Basic Auth：
+
+```yaml
+environment:
+  - FM_AUTH=admin:yourpassword  # 格式 user:pass，留空则不启用
+```
+
 ### 本地配置（不同步到远程仓库）
 
 如果你需要保留本地特定的配置（如挂载路径、端口等），可以创建本地配置文件：
@@ -166,10 +179,11 @@ docker compose -f docker-compose.local.yml up -d
 ## 🛠️ 技术栈
 
 - **运行时**: Node.js 20 (Alpine)
-- **依赖**: 无（纯标准库实现）
-- **UI 组件**: Material Web（Material Design 3）
-- **图标**: Material Symbols
-- **样式**: Material Design 3 设计令牌（原生 CSS，无构建步骤）
+- **依赖**: busboy（流式上传解析）
+- **UI 组件**: Material Web（Material Design 3，已打包内置，无 CDN 依赖）
+- **图标**: Material Symbols（内置字体子集）
+- **样式**: Material Design 3 设计令牌（原生 CSS，运行时无构建步骤）
+- **传输**: HTML gzip 压缩、静态资源强缓存、文件 ETag/304、Range 断点续传
 
 ## 📁 支持的文件类型
 
