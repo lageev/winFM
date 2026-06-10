@@ -118,6 +118,31 @@ services:
       - /your/local/path:/data   # Map local directory to /data in container
 ```
 
+### Environment Variable Configuration
+
+Use a `.env` file to configure local paths, making it easy to use different configurations in different environments:
+
+```bash
+# Copy the template and modify
+cp .env.example .env
+```
+
+Edit the `.env` file:
+
+```env
+# Local path to the data directory
+DATA_DIR=/your/local/path
+```
+
+Reference `${DATA_DIR}` in `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ${DATA_DIR}:/data
+```
+
+> **Note**: The `.env` file is ignored by `.gitignore` and will not be synced to the remote repository.
+
 ### Port Configuration
 
 Default port is `8888`, can be changed in `docker-compose.yml`:
@@ -162,6 +187,37 @@ docker compose -f docker-compose.local.yml up -d
 ```
 
 > **Note**: `*.local.yml` and `*.local.ps1` files are ignored by `.gitignore` and will not be synced to the remote repository.
+
+### ⚠️ Directory Permission Issues
+
+The container runs as a non-root user `nodejs` (uid=1001). If subdirectories in the mounted volume were created by other tools (e.g., Syncthing, Samba), they may be owned by root with `755` permissions, causing upload failures.
+
+**Symptoms**: Uploads work in the root directory but fail in certain subdirectories.
+
+**Solution**: Fix permissions on the host:
+
+```bash
+# Linux/Mac
+chmod -R 777 /your/local/path
+
+# Windows (run inside the container)
+docker exec -u root file-manager chmod -R 777 /data/
+```
+
+**Alternatively**, run as root in `docker-compose.yml` (simpler but slightly less secure):
+
+```yaml
+services:
+  file-manager:
+    image: lagee/winfm:latest
+    container_name: file-manager
+    restart: unless-stopped
+    user: "0:0"  # Run as root
+    ports:
+      - "8888:8888"
+    volumes:
+      - ${DATA_DIR}:/data
+```
 
 ## 🛠️ Tech Stack
 
