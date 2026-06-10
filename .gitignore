@@ -8,3 +8,6 @@ data/
 *.local.yml
 *.local.ps1
 *.local.json
+
+# 数据目录
+data/
