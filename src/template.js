@@ -3,7 +3,7 @@ const { getIcon, PREVIEW } = require('./file-ops');
 const { assetVersion } = require('./handlers/static');
 
 const PREVIEWABLE = new Set([].concat(PREVIEW.image, PREVIEW.video, PREVIEW.audio, PREVIEW.text));
-const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23C05000' d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E";
+const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23C96442' d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E";
 
 function getHTML(list, rp, sortField, sortDir, groupDirs) {
   sortField = sortField || 'name';
@@ -84,8 +84,8 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#FFFBFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1A1110" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EAE8DE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#30302E" media="(prefers-color-scheme: dark)">
 <title>${esc(currentLabel)} - winFM</title>
 <link rel="icon" href="${FAVICON}">
 <script>try{var t=localStorage.getItem('fm_theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
