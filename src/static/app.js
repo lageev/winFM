@@ -82,9 +82,15 @@ function currentView(){
 function applyViewIcon(){
   var view=currentView();
   document.documentElement.dataset.view=view;
-  var icon=document.getElementById('viewToggleIcon');
+  var oldIcon=document.getElementById('viewToggleIcon');
   var label=document.getElementById('viewToggleLabel');
-  if(icon) icon.textContent=view==='grid'?'view_list':'grid_view';
+  if(oldIcon){
+    var newIcon=document.createElement('md-icon');
+    newIcon.setAttribute('slot','icon');
+    newIcon.id='viewToggleIcon';
+    newIcon.textContent=view==='grid'?'view_list':'grid_view';
+    oldIcon.parentNode.replaceChild(newIcon,oldIcon);
+  }
   if(label) label.textContent=view==='grid'?'列表':'缩略图';
 }
 function toggleView(){

@@ -12,6 +12,10 @@ const AUTH = process.env.FM_AUTH || '';
 // 目录大小缓存文件名（存放于 ROOT 下，列表中隐藏）
 const SIZE_CACHE_NAME = '.dirsize-cache.json';
 
+// 缩略图磁盘缓存目录
+const THUMB_CACHE_DIR = path.join(ROOT, '.thumb-cache');
+try { fs.mkdirSync(THUMB_CACHE_DIR, { recursive: true }); } catch(e) {}
+
 const MIME = {
   // Web
   '.html':'text/html;charset=utf-8',
@@ -159,4 +163,4 @@ const MIME = {
   '.cmake':'text/plain',
 };
 
-module.exports = { PORT, ROOT, REAL_ROOT, AUTH, SIZE_CACHE_NAME, MIME };
+module.exports = { PORT, ROOT, REAL_ROOT, AUTH, SIZE_CACHE_NAME, THUMB_CACHE_DIR, MIME };

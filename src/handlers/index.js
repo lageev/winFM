@@ -5,7 +5,7 @@ const { safeDecodeURIComponent, safePath, ensureSafeDirectory, getSafePathParam 
 const { handleUpload } = require('./upload');
 const { handleAction } = require('./actions');
 const { handleBatch } = require('./batch');
-const { handleGet } = require('./get');
+const { handleGet, invalidateThumb } = require('./get');
 const { serveStatic } = require('./static');
 const { getDirectorySizeAsync } = require('../file-ops');
 
@@ -98,8 +98,12 @@ function handle(req, res) {
 
     if (action !== 'listdirs') {
       invalidateSizeCache(fp);
+      invalidateThumb(fp);
       const destParam = url.searchParams.get('dest');
-      if (destParam) invalidateSizeCache(getSafePathParam(destParam));
+      if (destParam) {
+        invalidateSizeCache(getSafePathParam(destParam));
+        invalidateThumb(getSafePathParam(destParam));
+      }
     }
 
     if (action === 'upload') {

@@ -8,7 +8,8 @@
     "build:assets": "esbuild scripts/vendor-entry.js --bundle --minify --format=esm --outfile=src/static/material-web.js && sh scripts/fetch-font.sh"
   },
   "dependencies": {
-    "busboy": "^1.6.0"
+    "busboy": "^1.6.0",
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
     "@material/web": "^2.4.1",

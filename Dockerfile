@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# 安装 vips（sharp 缩略图）和 ffmpeg（视频缩略图）
+RUN apk add --no-cache vips ffmpeg
+
 # 复制依赖文件（如果存在）
 COPY package*.json ./
 RUN npm ci --only=production 2>/dev/null || true
@@ -23,6 +26,6 @@ EXPOSE 8888
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8888 || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8888 || exit 1
 
 CMD ["node", "file-manager.js"]

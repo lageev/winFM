@@ -1,11 +1,162 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const crypto = require('crypto');
 const { pathExists, realPathInsideRoot, attachmentDisposition } = require('../utils');
-const { MIME, SIZE_CACHE_NAME } = require('../config');
+const { MIME, SIZE_CACHE_NAME, THUMB_CACHE_DIR } = require('../config');
 const { getHTML } = require('../template');
 
-function handleGet(req, res, url, rp, fp) {
+// ── 缩略图生成（sharp + ffmpeg）──
+let sharp;
+try { sharp = require('sharp'); } catch(e) { sharp = null; }
+const { execFile } = require('child_process');
+
+const THUMB_EXTS = new Set(['.jpg','.jpeg','.png','.gif','.webp','.bmp','.tiff','.tif','.avif']);
+const VIDEO_EXTS = new Set(['.mp4','.webm','.mkv','.mov','.m4v']);
+const THUMB_WIDTH = 300;
+const THUMB_MAX = 200; // 内存 LRU 上限
+const MAX_CONCURRENT = 3; // 后台生成并发上限
+
+// ── 内存 LRU 缓存 ──
+const thumbCache = new Map();
+
+function thumbKey(fp, mtimeMs) { return fp + ':' + mtimeMs; }
+
+function thumbMemGet(fp, mtimeMs) {
+  const k = thumbKey(fp, mtimeMs);
+  const hit = thumbCache.get(k);
+  if (hit) { thumbCache.delete(k); thumbCache.set(k, hit); }
+  return hit;
+}
+
+function thumbMemSet(fp, mtimeMs, buf) {
+  const k = thumbKey(fp, mtimeMs);
+  if (thumbCache.has(k)) thumbCache.delete(k);
+  thumbCache.set(k, { buf, size: buf.length });
+  while (thumbCache.size > THUMB_MAX) { thumbCache.delete(thumbCache.keys().next().value); }
+}
+
+// ── 磁盘缓存 ──
+function diskCacheKey(fp, mtimeMs) {
+  return crypto.createHash('md5').update(fp + ':' + mtimeMs).digest('hex') + '.jpg';
+}
+
+async function thumbDiskGet(fp, mtimeMs) {
+  const file = path.join(THUMB_CACHE_DIR, diskCacheKey(fp, mtimeMs));
+  try {
+    const buf = await fs.promises.readFile(file);
+    thumbMemSet(fp, mtimeMs, buf);
+    return buf;
+  } catch(e) { return null; }
+}
+
+async function thumbDiskSet(fp, mtimeMs, buf) {
+  const file = path.join(THUMB_CACHE_DIR, diskCacheKey(fp, mtimeMs));
+  try { await fs.promises.writeFile(file, buf); } catch(e) {}
+}
+
+// ── 请求合并（inflight）──
+const inflight = new Map();
+
+// ── 后台预生成队列 ──
+let activeCount = 0;
+const pendingQueue = [];
+
+function drainQueue() {
+  while (activeCount < MAX_CONCURRENT && pendingQueue.length > 0) {
+    const { fp, ext } = pendingQueue.shift();
+    activeCount++;
+    generateThumb(fp, ext, fs.statSync(fp).mtimeMs).catch(() => {}).finally(() => {
+      activeCount--;
+      drainQueue();
+    });
+  }
+}
+
+// ── 用 ffmpeg 提取视频第 1 帧 ──
+function extractVideoFrame(fp) {
+  return new Promise((resolve, reject) => {
+    execFile('ffmpeg', [
+      '-ss', '0', '-i', fp,
+      '-vframes', '1', '-f', 'image2',
+      '-c:v', 'png', '-pix_fmt', 'rgb24', 'pipe:1',
+    ], { maxBuffer: 4 * 1024 * 1024, timeout: 15000, encoding: 'buffer' }, (err, stdout) => {
+      if (err) return reject(err);
+      if (!stdout || !stdout.length) return reject(new Error('no frame'));
+      resolve(stdout);
+    });
+  });
+}
+
+// ── 核心：生成缩略图（带请求合并）──
+async function generateThumb(fp, ext, mtimeMs) {
+  const k = thumbKey(fp, mtimeMs);
+
+  // 内存命中
+  const mem = thumbMemGet(fp, mtimeMs);
+  if (mem) return mem.buf;
+
+  // 磁盘命中
+  const disk = await thumbDiskGet(fp, mtimeMs);
+  if (disk) return disk;
+
+  // 请求合并
+  if (inflight.has(k)) return inflight.get(k);
+
+  const promise = (async () => {
+    try {
+      let buf;
+      const isVideo = VIDEO_EXTS.has(ext);
+      if (isVideo) {
+        const frame = await extractVideoFrame(fp);
+        buf = await sharp(frame).resize({ width: THUMB_WIDTH, withoutEnlargement: true })
+          .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+      } else {
+        buf = await sharp(fp).resize({ width: THUMB_WIDTH, withoutEnlargement: true })
+          .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+      }
+      thumbMemSet(fp, mtimeMs, buf);
+      thumbDiskSet(fp, mtimeMs, buf); // 异步写磁盘，不阻塞返回
+      return buf;
+    } finally {
+      inflight.delete(k);
+    }
+  })();
+
+  inflight.set(k, promise);
+  return promise;
+}
+
+// ── 目录列表后后台预生成 ──
+function queueThumb(items, dirPath) {
+  if (!sharp) return;
+  for (const item of items) {
+    if (item.isDir) continue;
+    const ext = path.extname(item.name).toLowerCase();
+    if (!THUMB_EXTS.has(ext) && !VIDEO_EXTS.has(ext)) continue;
+    const fp = path.join(dirPath, item.name);
+    const k = thumbKey(fp, item.mtime ? new Date(item.mtime).getTime() : 0);
+    if (thumbCache.has(k) || inflight.has(k)) continue;
+    pendingQueue.push({ fp, ext });
+  }
+  drainQueue();
+}
+
+// ── 删除文件时清理磁盘缓存 ──
+function invalidateThumb(fp) {
+  // 惰性验证为主；主动清理可删除匹配前缀的缓存文件
+  try {
+    const files = fs.readdirSync(THUMB_CACHE_DIR);
+    const prefix = crypto.createHash('md5').update(fp).digest('hex');
+    for (const f of files) {
+      if (f.startsWith(prefix.slice(0, 8))) {
+        try { fs.unlinkSync(path.join(THUMB_CACHE_DIR, f)); } catch(e) {}
+      }
+    }
+  } catch(e) {}
+}
+
+async function handleGet(req, res, url, rp, fp) {
   if (!pathExists(fp)) {
     res.writeHead(404);
     res.end('<h1>404 Not Found</h1>');
@@ -26,7 +177,7 @@ function handleGet(req, res, url, rp, fp) {
     let items = [];
     try {
       items = fs.readdirSync(fp, { withFileTypes: true })
-        .filter(e => !(rp === '/' && e.name === SIZE_CACHE_NAME))
+        .filter(e => !(rp === '/' && (e.name === SIZE_CACHE_NAME || e.name === '.thumb-cache')))
         .map(e => {
           const itemPath = path.join(fp, e.name);
           let size = 0, mtime = null;
@@ -61,11 +212,34 @@ function handleGet(req, res, url, rp, fp) {
       res.writeHead(200, headers);
       res.end(html);
     }
+    // 后台预生成当前目录的缩略图
+    queueThumb(items, fp);
     return;
   }
 
-  // Serve file (streamed; supports HTTP Range for large files / resumable downloads)
+  // ── 缩略图请求（内存 → 磁盘 → 生成）──
   const ext = path.extname(fp).toLowerCase();
+  const isThumb = url.searchParams.has('thumb') && sharp && (THUMB_EXTS.has(ext) || VIDEO_EXTS.has(ext));
+
+  if (isThumb) {
+    const etag = 'W/"thumb-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304); res.end(); return; }
+    try {
+      const buf = await generateThumb(fp, ext, st.mtimeMs);
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': buf.length,
+        'Cache-Control': 'public, max-age=86400',
+        'ETag': etag,
+      });
+      res.end(buf);
+      return;
+    } catch(e) {
+      // 失败时 fallback 到原图
+    }
+  }
+
+  // Serve file (streamed; supports HTTP Range for large files / resumable downloads)
   const download = url.searchParams.get('download');
   const etag = 'W/"' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
 
@@ -87,6 +261,7 @@ function handleGet(req, res, url, rp, fp) {
     'Accept-Ranges': 'bytes',
     'ETag': etag,
     'Last-Modified': st.mtime.toUTCString(),
+    'Cache-Control': 'public, max-age=3600',
   };
   if (download) {
     headers['Content-Type'] = 'application/octet-stream';
@@ -116,4 +291,4 @@ function handleGet(req, res, url, rp, fp) {
   stream.pipe(res);
 }
 
-module.exports = { handleGet };
+module.exports = { handleGet, queueThumb, invalidateThumb };
