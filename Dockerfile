@@ -5,9 +5,9 @@ WORKDIR /app
 # 安装 vips（sharp 缩略图）和 ffmpeg（视频缩略图）
 RUN apk add --no-cache vips ffmpeg
 
-# 复制依赖文件（如果存在）
+# 复制依赖文件并安装（含 sharp，安装失败应让构建失败而非静默退化）
 COPY package*.json ./
-RUN npm ci --only=production 2>/dev/null || true
+RUN npm ci --omit=dev
 
 # 复制应用文件
 COPY file-manager.js .

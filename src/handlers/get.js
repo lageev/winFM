@@ -219,24 +219,26 @@ async function handleGet(req, res, url, rp, fp) {
 
   // ── 缩略图请求（内存 → 磁盘 → 生成）──
   const ext = path.extname(fp).toLowerCase();
-  const isThumb = url.searchParams.has('thumb') && sharp && (THUMB_EXTS.has(ext) || VIDEO_EXTS.has(ext));
 
-  if (isThumb) {
-    const etag = 'W/"thumb-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
-    if (req.headers['if-none-match'] === etag) { res.writeHead(304); res.end(); return; }
-    try {
-      const buf = await generateThumb(fp, ext, st.mtimeMs);
-      res.writeHead(200, {
-        'Content-Type': 'image/jpeg',
-        'Content-Length': buf.length,
-        'Cache-Control': 'public, max-age=86400',
-        'ETag': etag,
-      });
-      res.end(buf);
-      return;
-    } catch(e) {
-      // 失败时 fallback 到原图
+  if (url.searchParams.has('thumb')) {
+    if (sharp && (THUMB_EXTS.has(ext) || VIDEO_EXTS.has(ext))) {
+      const etag = 'W/"thumb-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
+      if (req.headers['if-none-match'] === etag) { res.writeHead(304); res.end(); return; }
+      try {
+        const buf = await generateThumb(fp, ext, st.mtimeMs);
+        res.writeHead(200, {
+          'Content-Type': 'image/jpeg',
+          'Content-Length': buf.length,
+          'Cache-Control': 'public, max-age=86400',
+          'ETag': etag,
+        });
+        res.end(buf);
+        return;
+      } catch(e) { /* 生成失败，落到下方占位响应 */ }
     }
+    // 无法生成缩略图：返回占位，避免回退成下载整张原图（前端 onerror 会显示文件图标）
+    res.writeHead(404); res.end();
+    return;
   }
 
   // Serve file (streamed; supports HTTP Range for large files / resumable downloads)
