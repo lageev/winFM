@@ -1,6 +1,6 @@
 # winFM
 
-A lightweight web-based file manager powered by Docker, implemented in a single Node.js file with zero external dependencies.
+A lightweight web-based file manager powered by Docker, implemented in Node.js with minimal dependencies.
 
 📦 **Docker Hub Image**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
 
@@ -35,14 +35,24 @@ A lightweight web-based file manager powered by Docker, implemented in a single 
 - 📂 Sidebar layout (directory tree + bookmarked directories, collapsible/expandable)
 
 ### 🎨 Interface Design
-- 📱 Responsive design, fully mobile-friendly
-- 🎨 Material Design 3 orange theme (Material Web components + Material Symbols icons, auto dark/light mode)
-- ⌨️ Keyboard shortcuts (ESC to close dialogs)
+- 📱 Responsive design, fully mobile-friendly (actions collapse into a "More" menu on mobile)
+- 🎨 Material Design 3 orange theme (Material Web components + Material Symbols icons, auto dark/light mode, manual toggle)
+- 🔍 Instant in-directory search filtering
+- 🌐 Components and icon fonts are bundled locally, works offline / in intranet environments
+- ⌨️ Keyboard shortcuts (ESC to close dialogs, left/right arrows to navigate files in preview)
+
+### 🖼️ Thumbnails & View Modes
+- 🖼️ Auto-generated thumbnails for images and videos (sharp + ffmpeg, memory LRU + disk cache)
+- 📐 List / Grid view toggle — grid mode displays media files as thumbnail cards
 
 ### 🔒 Security
 - Path traversal attack protection
 - Filename safety validation
 - Symlink safety checks
+- CSRF cross-site request protection
+- Admin login: form login + signed session cookie; management operations and directory browsing require login
+- Anonymous viewing: unauthenticated users can view individual files via direct links, rate-limited per IP with idle timeout reset
+- Login failure rate limiting per IP to prevent brute-force attacks
 
 ## 🚀 Quick Start
 
@@ -152,6 +162,49 @@ ports:
   - "8080:8888"  # Change to port 8080
 ```
 
+### Authentication (Admin Login)
+
+Credential source priority: environment variable > persisted file > unconfigured (first-run setup).
+
+- **First-run setup**: When `FM_PASS` is not set, the first visit redirects to `/__fm/setup` to create an admin username and password online. Credentials (password hashed with scrypt) and session key are persisted to `.fm-auth.json` in the data directory, take effect immediately, and survive restarts.
+- **Environment variable config** (skip setup):
+
+```yaml
+environment:
+  - FM_USER=admin              # Admin username, default admin
+  - FM_PASS=yourpassword       # Admin password
+  - FM_SECRET=random-long-str  # Session signing key, recommended for persistent sessions
+  - FM_SESSION_HOURS=168       # Optional, session TTL in hours, default 7 days
+  - FM_OPEN=1                  # Optional, fully public mode, no login required and skips setup
+```
+
+- Single admin account only; visiting directory or management pages redirects to login page `/__fm/login`, logout button in top-right corner.
+- When using env vars without `FM_SECRET`, the key is randomly generated and sessions are lost on restart (setup-persisted keys don't have this issue).
+- Legacy format: `FM_AUTH=admin:yourpassword` (equivalent to `FM_USER` + `FM_PASS`).
+
+### Anonymous Viewing (Unauthenticated)
+
+When authentication is enabled, unauthenticated users can still view individual files via direct links (for external sharing), subject to rate limits; directory browsing and all write operations still require login:
+
+```yaml
+environment:
+  - FM_ANON=1            # 1 to enable (default), 0 to disable (all access requires login)
+  - FM_ANON_LIMIT=20     # Max different files per IP within the time window
+  - FM_ANON_IDLE_MIN=30  # Minutes of inactivity before the IP's quota deactivates and resets
+```
+
+- Repeated access to the same file and resume requests don't count as new accesses; returning `429` when the limit of different files is reached.
+- After `FM_ANON_IDLE_MIN` minutes of inactivity, the IP's quota deactivates and resets.
+
+### Share Direct Links (Custom Views & Expiry)
+
+When authentication is enabled, logged-in admins can generate signed share links for individual files from the "Share" dialog, with custom settings:
+
+- View count: 0 = unlimited, link expires after reaching the limit.
+- Expiry (hours): 0 = permanent, link expires after the timeout.
+
+Links look like `/__fm/s?t=<signed-token>`, accessible without login; token is HMAC-signed and tamper-proof, expiry is guaranteed by the signature and survives server restarts (view count is in-memory and resets on restart).
+
 ### Local Configuration (Not synced to remote)
 
 If you need to keep local-specific configurations (such as mount paths, ports, etc.), you can create local config files:
@@ -222,21 +275,23 @@ services:
 ## 🛠️ Tech Stack
 
 - **Runtime**: Node.js 20 (Alpine)
-- **Dependencies**: None (pure standard library implementation)
-- **UI Components**: Material Web (Material Design 3)
-- **Icons**: Material Symbols
-- **Styles**: Material Design 3 design tokens (native CSS, no build step)
+- **Dependencies**: busboy (streaming upload parsing), sharp (image thumbnails), ffmpeg (video frame extraction)
+- **UI Components**: Material Web (Material Design 3, bundled locally, no CDN dependency)
+- **Icons**: Material Symbols (bundled font subset)
+- **Styles**: Material Design 3 design tokens (native CSS, no build step at runtime)
+- **Transport**: HTML gzip compression, static asset caching, file ETag/304, Range resume
 
 ## 📁 Supported File Types
 
 | Type | Extensions |
 |------|-----------|
-| Images | PNG, JPG, JPEG, GIF, SVG, WebP, ICO |
-| Video | MP4, WebM |
-| Audio | MP3, WAV |
+| Images | PNG, JPG, JPEG, GIF, SVG, WebP, AVIF, BMP, TIFF, ICO |
+| Video | MP4, WebM, MKV, MOV, M4V |
+| Audio | MP3, WAV, OGG, AAC, FLAC, M4A, WMA, OPUS |
 | Documents | PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, CSV |
-| Code | HTML, CSS, JS, JSON, TypeScript, JSX, TSX, Vue, Python, Java, C/C++, Go, Rust, etc. |
-| Other | TXT, MD, YAML, YML, XML, LOG, Shell scripts |
+| Archives | ZIP, RAR, 7Z, TAR, GZ, TGZ, BZ2, XZ, ZST |
+| Code | HTML, CSS, JS, TS, JSX, TSX, Vue, Svelte, Python, Java, C/C++, Go, Rust, Ruby, PHP, Swift, Kotlin, etc. |
+| Other | TXT, MD, YAML, TOML, XML, LOG, Shell scripts, Font files |
 
 ## 📝 Usage
 

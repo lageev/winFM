@@ -1,7 +1,7 @@
 const { esc, formatSize, itemHref } = require('./utils');
 const { getIcon, PREVIEW } = require('./file-ops');
 const { assetVersion } = require('./handlers/static');
-const { AUTH_ENABLED } = require('./config');
+const { isAuthActive } = require('./auth');
 
 const PREVIEWABLE = new Set([].concat(PREVIEW.image, PREVIEW.video, PREVIEW.audio, PREVIEW.text));
 const IMAGE_EXTS = new Set(PREVIEW.image);
@@ -12,6 +12,7 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
   sortField = sortField || 'name';
   sortDir = sortDir || 'asc';
   groupDirs = groupDirs !== false;
+  const AUTH_ENABLED = isAuthActive();
 
   // 非默认排序时，目录链接携带排序参数，导航后保持排序状态
   const qp = [];

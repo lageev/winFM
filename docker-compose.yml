@@ -8,13 +8,15 @@ services:
     volumes:
       - ${DATA_DIR}:/data
     environment:
-      # 管理员登录鉴权（设置密码后开启，所有文件访问都需登录）
-      - FM_USER=${FM_USER:-admin}
+      # 管理员登录鉴权：不配置 FM_PASS 时，首次访问进入引导页在线设置（凭据持久化到 /data）
+      - FM_USER=${FM_USER:-}
       - FM_PASS=${FM_PASS:-}
-      # 会话签名密钥，建议设置为随机长字符串以持久化登录态
+      # 用环境变量配置时建议设置 FM_SECRET（随机长字符串）以持久化登录态
       - FM_SECRET=${FM_SECRET:-}
       # 兼容旧格式 user:pass
       - FM_AUTH=${FM_AUTH:-}
+      # 设为 1 则完全公开、无需登录（跳过引导）
+      - FM_OPEN=${FM_OPEN:-0}
       # 未登录匿名查看：保留直链查看，限制访问的不同文件数与空闲时效（FM_ANON=0 关闭）
       - FM_ANON=${FM_ANON:-1}
       - FM_ANON_LIMIT=${FM_ANON_LIMIT:-20}

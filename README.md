@@ -1,6 +1,6 @@
 # winFM
 
-基于 Docker 的轻量级 Web 文件管理器，单文件 Node.js 实现，无外部依赖。
+基于 Docker 的轻量级 Web 文件管理器，Node.js 实现，极简依赖。
 
 📦 **Docker Hub 镜像**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
 
@@ -41,12 +41,16 @@
 - 🌐 组件与图标字体已内置本地化，离线 / 内网环境可用
 - ⌨️ 快捷键支持（ESC 关闭弹窗，预览中左右方向键切换文件）
 
+### 🖼️ 缩略图与视图模式
+- 🖼️ 图片 / 视频缩略图自动生成（基于 sharp + ffmpeg，内存 LRU + 磁盘缓存）
+- 📐 列表 / 网格视图切换，网格模式下以缩略图卡片展示媒体文件
+
 ### 🔒 安全特性
 - 路径遍历攻击防护
 - 文件名安全验证
 - 符号链接安全检查
 - CSRF 跨站请求防护
-- 管理员登录鉴权：表单登录 + 签名会话 Cookie，管理操作与目录浏览均需登录
+- 管理员登录鉴权：首次访问引导设置账户，表单登录 + 签名会话 Cookie，管理操作与目录浏览均需登录
 - 未登录匿名查看：保留单文件直链查看，按 IP 限制可访问的不同文件数并在空闲后失活
 - 登录失败按 IP 限流，防暴力破解
 
@@ -160,18 +164,22 @@ volumes:
 
 ### 访问认证（管理员登录）
 
-设置管理员密码后开启登录鉴权，管理操作与目录浏览均需登录：
+凭据来源优先级：环境变量 > 持久化文件 > 未配置（首次引导）。
+
+- 首次引导：不配置 `FM_PASS` 时，首次访问会自动跳转到设置页 `/__fm/setup`，在线设置管理员用户名与密码。设置后凭据（密码经 scrypt 哈希）与会话密钥持久化到数据目录的 `.fm-auth.json`，立即生效并自动登录，重启后仍有效。
+- 环境变量配置（跳过引导）：
 
 ```yaml
 environment:
   - FM_USER=admin              # 管理员用户名，默认 admin
-  - FM_PASS=yourpassword       # 管理员密码，留空则不启用鉴权
+  - FM_PASS=yourpassword       # 管理员密码
   - FM_SECRET=random-long-str  # 会话签名密钥，建议设置以持久化登录态
   - FM_SESSION_HOURS=168       # 可选，会话有效期（小时），默认 7 天
+  - FM_OPEN=1                  # 可选，完全公开、无需登录并跳过引导
 ```
 
 - 仅单一管理员账户；访问目录或管理页面会跳转到登录页 `/__fm/login`，右上角可退出登录。
-- 未设置 `FM_SECRET` 时密钥随机生成，服务重启后需重新登录。
+- 用环境变量配置且未设 `FM_SECRET` 时密钥随机生成，服务重启后需重新登录（引导页设置的密钥会持久化，无此问题）。
 - 兼容旧格式：`FM_AUTH=admin:yourpassword`（等价于 `FM_USER` + `FM_PASS`）。
 
 ### 未登录匿名查看
@@ -267,7 +275,7 @@ services:
 ## 🛠️ 技术栈
 
 - **运行时**: Node.js 20 (Alpine)
-- **依赖**: busboy（流式上传解析）
+- **依赖**: busboy（流式上传解析）、sharp（图片缩略图）、ffmpeg（视频抽帧）
 - **UI 组件**: Material Web（Material Design 3，已打包内置，无 CDN 依赖）
 - **图标**: Material Symbols（内置字体子集）
 - **样式**: Material Design 3 设计令牌（原生 CSS，运行时无构建步骤）
@@ -277,12 +285,13 @@ services:
 
 | 类型 | 扩展名 |
 |------|--------|
-| 图片 | PNG、JPG、JPEG、GIF、SVG、WebP、ICO |
-| 视频 | MP4、WebM |
-| 音频 | MP3、WAV |
+| 图片 | PNG、JPG、JPEG、GIF、SVG、WebP、AVIF、BMP、TIFF、ICO |
+| 视频 | MP4、WebM、MKV、MOV、M4V |
+| 音频 | MP3、WAV、OGG、AAC、FLAC、M4A、WMA、OPUS |
 | 文档 | PDF、DOC、DOCX、XLS、XLSX、PPT、PPTX、CSV |
-| 代码 | HTML、CSS、JS、JSON、TypeScript、JSX、TSX、Vue、Python、Java、C/C++、Go、Rust 等 |
-| 其他 | TXT、MD、YAML、YML、XML、LOG、Shell 脚本 |
+| 压缩包 | ZIP、RAR、7Z、TAR、GZ、TGZ、BZ2、XZ、ZST |
+| 代码 | HTML、CSS、JS、TS、JSX、TSX、Vue、Svelte、Python、Java、C/C++、Go、Rust、Ruby、PHP、Swift、Kotlin 等 |
+| 其他 | TXT、MD、YAML、TOML、XML、LOG、Shell 脚本、字体文件 |
 
 ## 📝 使用说明
 

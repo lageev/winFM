@@ -2,18 +2,34 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { esc } = require('./utils');
 const {
-  ADMIN_USER, ADMIN_PASS, AUTH_ENABLED, SESSION_SECRET, SESSION_TTL,
-  ANON_ENABLED, ANON_LIMIT, ANON_IDLE,
+  ADMIN_USER, ADMIN_PASS, SESSION_SECRET, SESSION_TTL,
+  ANON_ENABLED, ANON_LIMIT, ANON_IDLE, CRED_FILE, OPEN_MODE,
 } = require('./config');
 
 const COOKIE = 'fm_session';
 
-if (AUTH_ENABLED && !process.env.FM_SECRET) {
-  console.warn('提示: 未设置 FM_SECRET，会话密钥随机生成，服务重启后需重新登录。');
+// ── 管理员凭据三态：环境变量 > 持久化文件 > 未配置（引导设置）──
+// creds: { user, secret, fromEnv } 或文件模式额外含 { salt, hash }；为 null 表示未配置
+let creds = initCreds();
+
+function initCreds() {
+  if (ADMIN_PASS) {
+    if (!process.env.FM_SECRET) console.warn('提示: 未设置 FM_SECRET，会话密钥随机生成，服务重启后需重新登录。');
+    return { user: ADMIN_USER, secret: SESSION_SECRET, fromEnv: true };
+  }
+  try {
+    const j = JSON.parse(fs.readFileSync(CRED_FILE, 'utf8'));
+    if (j && j.user && j.salt && j.hash && j.secret) return { user: j.user, salt: j.salt, hash: j.hash, secret: j.secret };
+  } catch(e) {}
+  return null;
 }
 
+function isAuthActive() { return !!creds; }              // 已配置可登录
+function needsSetup() { return !creds && !OPEN_MODE; }   // 未配置且非开放：需引导设置
+function activeSecret() { return creds ? creds.secret : SESSION_SECRET; }
+
 function hmac(s) {
-  return crypto.createHmac('sha256', SESSION_SECRET).update(s).digest('hex');
+  return crypto.createHmac('sha256', activeSecret()).update(s).digest('hex');
 }
 
 // ── 无状态签名会话：Cookie 值为 "过期时间.HMAC签名"，无需服务端存储，重启后凭固定密钥仍有效 ──
@@ -41,9 +57,12 @@ function safeEqual(a, b) {
 }
 
 function verifyCredentials(user, pass) {
+  if (!creds) return false;
   // 用户名与密码都参与比较，避免任一短路泄露信息
-  const okUser = safeEqual(user, ADMIN_USER);
-  const okPass = safeEqual(pass, ADMIN_PASS);
+  const okUser = safeEqual(user, creds.user);
+  const okPass = creds.fromEnv
+    ? safeEqual(pass, ADMIN_PASS)
+    : safeEqual(crypto.scryptSync(String(pass), creds.salt, 64).toString('hex'), creds.hash);
   return okUser && okPass;
 }
 
@@ -64,7 +83,7 @@ function setSessionCookie(res, token) {
 }
 
 function isAuthed(req) {
-  if (!AUTH_ENABLED) return true;
+  if (!creds) return OPEN_MODE;  // 未配置：开放模式放行，否则不放行（将被引导至设置页）
   return verifyToken(getCookie(req, COOKIE));
 }
 
@@ -103,20 +122,7 @@ function readBody(req, limit, cb) {
   req.on('error', fail);
 }
 
-function loginPage(next, error) {
-  const safeNext = esc(sanitizeNext(next));
-  const err = error ? '<div class="err">' + esc(error) + '</div>' : '';
-  return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#EAE8DE" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#30302E" media="(prefers-color-scheme: dark)">
-<title>登录 - winFM</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23C96442' d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E">
-<style>
-:root{--bg:#EAE8DE;--card:#fff;--fg:#30302E;--muted:#6b6a64;--brand:#C96442;--border:#dcd9cc;--field:#f5f3ea}
+const PAGE_CSS = `:root{--bg:#EAE8DE;--card:#fff;--fg:#30302E;--muted:#6b6a64;--brand:#C96442;--border:#dcd9cc;--field:#f5f3ea}
 @media(prefers-color-scheme:dark){:root{--bg:#1f1f1d;--card:#30302E;--fg:#eceae2;--muted:#a8a69c;--border:#46453f;--field:#3a3a37}}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;padding:24px}
@@ -131,36 +137,95 @@ input{width:100%;padding:12px 14px;font-size:15px;color:var(--fg);background:var
 input:focus{border-color:var(--brand)}
 button{width:100%;margin-top:24px;padding:13px;font-size:15px;font-weight:600;color:#fff;background:var(--brand);border:none;border-radius:10px;cursor:pointer}
 button:hover{filter:brightness(.95)}
-.err{margin-top:16px;padding:10px 14px;font-size:13px;color:#b3261e;background:rgba(179,38,30,.1);border-radius:10px}
-</style>
+.err{margin-top:16px;padding:10px 14px;font-size:13px;color:#b3261e;background:rgba(179,38,30,.1);border-radius:10px}`;
+
+const BRAND_SVG = '<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
+
+function authPage(title, subtitle, formInner) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#EAE8DE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#30302E" media="(prefers-color-scheme: dark)">
+<title>${esc(title)} - winFM</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23C96442' d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E">
+<style>${PAGE_CSS}</style>
 </head>
 <body>
-<form class="card" method="POST" action="/__fm/login">
+<form class="card" method="POST">
   <div class="brand">
-    <div class="mark"><svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></div>
-    <div><h1>winFM</h1><p>请登录以访问文件</p></div>
+    <div class="mark">${BRAND_SVG}</div>
+    <div><h1>winFM</h1><p>${esc(subtitle)}</p></div>
   </div>
-  <label for="user">用户名</label>
-  <input id="user" name="user" autocomplete="username" autofocus required>
-  <label for="pass">密码</label>
-  <input id="pass" name="pass" type="password" autocomplete="current-password" required>
-  <input type="hidden" name="next" value="${safeNext}">
-  ${err}
-  <button type="submit">登录</button>
+  ${formInner}
 </form>
 </body>
 </html>`;
 }
 
-function sendLogin(res, next, error, status) {
-  const html = loginPage(next, error);
+function loginPage(next, error) {
+  const safeNext = esc(sanitizeNext(next));
+  const err = error ? '<div class="err">' + esc(error) + '</div>' : '';
+  const inner = `<label for="user">用户名</label>
+  <input id="user" name="user" autocomplete="username" autofocus required>
+  <label for="pass">密码</label>
+  <input id="pass" name="pass" type="password" autocomplete="current-password" required>
+  <input type="hidden" name="next" value="${safeNext}">
+  ${err}
+  <button type="submit" formaction="/__fm/login">登录</button>`;
+  return authPage('登录', '请登录以访问文件', inner);
+}
+
+function setupPage(error) {
+  const err = error ? '<div class="err">' + esc(error) + '</div>' : '';
+  const inner = `<label for="user">管理员用户名</label>
+  <input id="user" name="user" value="admin" autocomplete="username" autofocus required>
+  <label for="pass">设置密码</label>
+  <input id="pass" name="pass" type="password" autocomplete="new-password" required>
+  <label for="pass2">确认密码</label>
+  <input id="pass2" name="pass2" type="password" autocomplete="new-password" required>
+  ${err}
+  <button type="submit" formaction="/__fm/setup">完成设置</button>`;
+  return authPage('初始化', '首次使用，请设置管理员账户', inner);
+}
+
+function sendPage(res, html, status) {
   res.writeHead(status || 200, { 'Content-Type': 'text/html;charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(html);
 }
+function sendLogin(res, next, error, status) { sendPage(res, loginPage(next, error), status); }
 
-// 处理 /__fm/login 与 /__fm/logout，返回 true 表示已处理
+// 首次引导设置管理员账户：写入持久化凭据文件并即时生效
+function handleSetup(req, res) {
+  if (!needsSetup()) { res.writeHead(302, { Location: '/' }); res.end(); return; }  // 已配置或开放模式，无需引导
+  if (req.method === 'GET') { sendPage(res, setupPage('')); return; }
+  if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
+  readBody(req, 4096, body => {
+    if (body === null) { sendPage(res, setupPage('请求无效'), 400); return; }
+    const form = new URLSearchParams(body);
+    const user = (form.get('user') || '').trim() || 'admin';
+    const pass = form.get('pass') || '';
+    if (pass.length < 6) { sendPage(res, setupPage('密码至少 6 位'), 400); return; }
+    if (pass !== (form.get('pass2') || '')) { sendPage(res, setupPage('两次输入的密码不一致'), 400); return; }
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.scryptSync(pass, salt, 64).toString('hex');
+    const secret = crypto.randomBytes(32).toString('hex');
+    try { fs.writeFileSync(CRED_FILE, JSON.stringify({ user, salt, hash, secret }), { mode: 0o600 }); }
+    catch(e) { sendPage(res, setupPage('保存失败，请检查数据目录写入权限'), 500); return; }
+    creds = { user, salt, hash, secret };
+    setSessionCookie(res, makeToken());  // 设置完成后自动登录
+    res.writeHead(303, { Location: '/' });
+    res.end();
+  });
+}
+
+// 处理 /__fm/setup、/__fm/login、/__fm/logout，返回 true 表示已处理
 function handleAuthRoutes(req, res, url) {
   const p = url.pathname;
+
+  if (p === '/__fm/setup') { handleSetup(req, res); return true; }
 
   if (p === '/__fm/logout') {
     setSessionCookie(res, '');
@@ -171,8 +236,8 @@ function handleAuthRoutes(req, res, url) {
 
   if (p !== '/__fm/login') return false;
 
-  // 未开启鉴权时不暴露登录页
-  if (!AUTH_ENABLED) { res.writeHead(302, { Location: '/' }); res.end(); return true; }
+  // 未配置凭据时不暴露登录页：需引导则去设置页，开放模式回首页
+  if (!isAuthActive()) { res.writeHead(302, { Location: needsSetup() ? '/__fm/setup' : '/' }); res.end(); return true; }
 
   if (req.method === 'GET') {
     if (isAuthed(req)) { res.writeHead(302, { Location: sanitizeNext(url.searchParams.get('next')) }); res.end(); return true; }
@@ -204,13 +269,14 @@ function handleAuthRoutes(req, res, url) {
   return true;
 }
 
-// 拒绝未授权访问：导航请求重定向登录页，其余请求返回 401
+// 拒绝未授权访问：导航请求重定向（未配置→设置页，否则→登录页），其余请求返回 401
 function denyAuth(req, res, url) {
   const mode = req.headers['sec-fetch-mode'];
   const accept = req.headers['accept'] || '';
   const isNav = req.method === 'GET' && (mode === 'navigate' || (!mode && accept.includes('text/html')));
   if (isNav) {
-    res.writeHead(302, { Location: '/__fm/login?next=' + encodeURIComponent(url.pathname + url.search) });
+    const target = needsSetup() ? '/__fm/setup' : ('/__fm/login?next=' + encodeURIComponent(url.pathname + url.search));
+    res.writeHead(302, { Location: target });
     res.end();
   } else {
     res.writeHead(401, { 'Content-Type': 'text/plain;charset=utf-8' });
@@ -240,6 +306,8 @@ setInterval(() => {
 // 访问守卫：已登录放行；未登录时仅放行受限的匿名文件直链查看，其余需登录
 function guardAccess(req, res, url, fp) {
   if (isAuthed(req)) return true;
+  // 未配置凭据：引导去设置页
+  if (needsSetup()) return denyAuth(req, res, url);
   // 写操作与目录类接口（如 dirsize）一律需登录
   if (req.method !== 'GET' || url.searchParams.get('action')) return denyAuth(req, res, url);
   // 关闭匿名查看时，未登录不可访问
@@ -290,4 +358,4 @@ setInterval(() => {
   for (const [i, rec] of shares) if (rec.exp > 0 && now > rec.exp) shares.delete(i);
 }, 60 * 60 * 1000).unref();
 
-module.exports = { handleAuthRoutes, guardAccess, makeShareToken, consumeShare };
+module.exports = { handleAuthRoutes, guardAccess, makeShareToken, consumeShare, isAuthActive };

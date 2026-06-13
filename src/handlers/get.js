@@ -3,7 +3,7 @@ const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
 const { pathExists, realPathInsideRoot, attachmentDisposition } = require('../utils');
-const { MIME, SIZE_CACHE_NAME, THUMB_CACHE_DIR } = require('../config');
+const { MIME, SIZE_CACHE_NAME, THUMB_CACHE_DIR, AUTH_FILE } = require('../config');
 const { getHTML } = require('../template');
 
 // ── 缩略图生成（sharp + ffmpeg）──
@@ -199,7 +199,7 @@ async function handleGet(req, res, url, rp, fp) {
     let items = [];
     try {
       items = fs.readdirSync(fp, { withFileTypes: true })
-        .filter(e => !(rp === '/' && (e.name === SIZE_CACHE_NAME || e.name === '.thumb-cache')))
+        .filter(e => !(rp === '/' && (e.name === SIZE_CACHE_NAME || e.name === '.thumb-cache' || e.name === AUTH_FILE)))
         .map(e => {
           const itemPath = path.join(fp, e.name);
           let size = 0, mtime = null;

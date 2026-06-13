@@ -12,8 +12,6 @@ const REAL_ROOT = fs.realpathSync(ROOT);
 const FM_AUTH = process.env.FM_AUTH || '';
 const ADMIN_USER = process.env.FM_USER || FM_AUTH.split(':')[0] || 'admin';
 const ADMIN_PASS = process.env.FM_PASS || (FM_AUTH.includes(':') ? FM_AUTH.slice(FM_AUTH.indexOf(':') + 1) : '');
-// 配置了密码即开启登录鉴权（所有文件访问都需登录，杜绝直链）
-const AUTH_ENABLED = !!ADMIN_PASS;
 // 会话签名密钥：未配置则随机生成（服务重启后需重新登录），配置 FM_SECRET 可持久化会话
 const SESSION_SECRET = process.env.FM_SECRET || crypto.randomBytes(32).toString('hex');
 // 会话有效期（小时），默认 7 天
@@ -26,6 +24,12 @@ const ANON_ENABLED = process.env.FM_ANON !== '0';
 const ANON_LIMIT = Number(process.env.FM_ANON_LIMIT) || 20;
 // 空闲多久后匿名访问额度失活并重置（分钟），默认 30
 const ANON_IDLE = (Number(process.env.FM_ANON_IDLE_MIN) || 30) * 60 * 1000;
+
+// 管理员凭据持久化文件：未用环境变量配置时，首次通过引导页设置并写入此文件（存于 ROOT 下，列表中隐藏）
+const AUTH_FILE = '.fm-auth.json';
+const CRED_FILE = path.join(ROOT, AUTH_FILE);
+// 显式开放模式：未配置任何凭据且 FM_OPEN=1 时跳过登录引导，保持无鉴权访问
+const OPEN_MODE = process.env.FM_OPEN === '1';
 
 // 目录大小缓存文件名（存放于 ROOT 下，列表中隐藏）
 const SIZE_CACHE_NAME = '.dirsize-cache.json';
@@ -183,6 +187,7 @@ const MIME = {
 
 module.exports = {
   PORT, ROOT, REAL_ROOT, SIZE_CACHE_NAME, THUMB_CACHE_DIR, MIME,
-  ADMIN_USER, ADMIN_PASS, AUTH_ENABLED, SESSION_SECRET, SESSION_TTL,
+  ADMIN_USER, ADMIN_PASS, SESSION_SECRET, SESSION_TTL,
   ANON_ENABLED, ANON_LIMIT, ANON_IDLE,
+  AUTH_FILE, CRED_FILE, OPEN_MODE,
 };

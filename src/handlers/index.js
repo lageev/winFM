@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { ROOT, SIZE_CACHE_NAME } = require('../config');
+const { ROOT, SIZE_CACHE_NAME, CRED_FILE } = require('../config');
 const { safeDecodeURIComponent, safePath, ensureSafeDirectory, getSafePathParam, safeName, safeChildPath, realPathInsideRoot } = require('../utils');
 const { handleAuthRoutes, guardAccess, makeShareToken, consumeShare } = require('../auth');
 const { handleUpload } = require('./upload');
@@ -83,6 +83,9 @@ function handle(req, res) {
   const fp = safePath(rp);
   if (!fp) { res.writeHead(403); res.end('Forbidden'); return; }
 
+  // 凭据文件含密码哈希，禁止任何方式访问
+  if (fp === CRED_FILE) { res.writeHead(403); res.end('Forbidden'); return; }
+
   // 鉴权：已登录放行；未登录仅允许受限的匿名文件直链查看（次数/空闲时效限制）
   if (!guardAccess(req, res, url, fp)) return;
 
@@ -145,7 +148,7 @@ function handleShare(req, res, url, rp, fp) {
   if (!name) { res.writeHead(400); res.end('Missing name'); return; }
   const target = safeChildPath(fp, name);
   let st; try { st = fs.statSync(target); } catch(e) {}
-  if (!target || !st || !st.isFile() || !realPathInsideRoot(target)) { res.writeHead(404); res.end('Not a file'); return; }
+  if (!target || target === CRED_FILE || !st || !st.isFile() || !realPathInsideRoot(target)) { res.writeHead(404); res.end('Not a file'); return; }
   const views = Math.max(0, Math.floor(Number(url.searchParams.get('views')) || 0));
   const hours = Number(url.searchParams.get('hours')) || 0;
   const exp = hours > 0 ? Date.now() + Math.round(hours * 3600 * 1000) : 0;
@@ -163,8 +166,8 @@ function handleShareAccess(req, res, url) {
   if (!r.ok) { res.writeHead(403, { 'Content-Type': 'text/plain;charset=utf-8' }); res.end('链接无效或已失效'); return; }
   const fp = safePath(r.p);
   let st; try { st = fs.statSync(fp); } catch(e) {}
-  // 仅允许文件，避免 token 指向目录时被列目录
-  if (!fp || !st || !st.isFile() || !realPathInsideRoot(fp)) { res.writeHead(404); res.end('Not found'); return; }
+  // 仅允许文件，避免 token 指向目录时被列目录；凭据文件禁止
+  if (!fp || fp === CRED_FILE || !st || !st.isFile() || !realPathInsideRoot(fp)) { res.writeHead(404); res.end('Not found'); return; }
   handleGet(req, res, url, r.p, fp);
 }
 
