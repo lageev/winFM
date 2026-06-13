@@ -74,18 +74,39 @@ function drainQueue() {
 }
 
 // ── 用 ffmpeg 提取视频第 1 帧 ──
-function extractVideoFrame(fp) {
-  return new Promise((resolve, reject) => {
-    execFile('ffmpeg', [
-      '-ss', '0', '-i', fp,
-      '-vframes', '1', '-f', 'image2',
-      '-c:v', 'png', '-pix_fmt', 'rgb24', 'pipe:1',
-    ], { maxBuffer: 4 * 1024 * 1024, timeout: 15000, encoding: 'buffer' }, (err, stdout) => {
-      if (err) return reject(err);
-      if (!stdout || !stdout.length) return reject(new Error('no frame'));
-      resolve(stdout);
+// ffmpeg 抽帧极耗 CPU/磁盘，用全局闸门限制并发（含后台与按需请求），
+// 避免大量视频缩略图把资源占满，拖慢列表加载和视频预览。
+const FFMPEG_MAX = 2;
+let ffmpegActive = 0;
+const ffmpegWaiters = [];
+
+function acquireFfmpeg() {
+  if (ffmpegActive < FFMPEG_MAX) { ffmpegActive++; return Promise.resolve(); }
+  return new Promise(resolve => ffmpegWaiters.push(resolve));
+}
+function releaseFfmpeg() {
+  const next = ffmpegWaiters.shift();
+  if (next) next();        // 名额转交给等待者，计数不变
+  else ffmpegActive--;
+}
+
+async function extractVideoFrame(fp) {
+  await acquireFfmpeg();
+  try {
+    return await new Promise((resolve, reject) => {
+      execFile('ffmpeg', [
+        '-ss', '0', '-i', fp,
+        '-vframes', '1', '-vf', 'scale=' + THUMB_WIDTH + ':-2', '-threads', '1',
+        '-f', 'image2', '-c:v', 'png', '-pix_fmt', 'rgb24', 'pipe:1',
+      ], { maxBuffer: 4 * 1024 * 1024, timeout: 15000, encoding: 'buffer' }, (err, stdout) => {
+        if (err) return reject(err);
+        if (!stdout || !stdout.length) return reject(new Error('no frame'));
+        resolve(stdout);
+      });
     });
-  });
+  } finally {
+    releaseFfmpeg();
+  }
 }
 
 // ── 核心：生成缩略图（带请求合并）──
@@ -133,7 +154,8 @@ function queueThumb(items, dirPath) {
   for (const item of items) {
     if (item.isDir) continue;
     const ext = path.extname(item.name).toLowerCase();
-    if (!THUMB_EXTS.has(ext) && !VIDEO_EXTS.has(ext)) continue;
+    // 仅后台预生成图片；视频抽帧太重，改为前端可见时按需生成（受 ffmpeg 闸门限流）
+    if (!THUMB_EXTS.has(ext)) continue;
     const fp = path.join(dirPath, item.name);
     const k = thumbKey(fp, item.mtime ? new Date(item.mtime).getTime() : 0);
     if (thumbCache.has(k) || inflight.has(k)) continue;
