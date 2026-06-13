@@ -3,6 +3,7 @@ const { getIcon, PREVIEW } = require('./file-ops');
 const { assetVersion } = require('./handlers/static');
 
 const PREVIEWABLE = new Set([].concat(PREVIEW.image, PREVIEW.video, PREVIEW.audio, PREVIEW.text));
+const IMAGE_EXTS = new Set(PREVIEW.image);
 const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23C96442' d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E";
 
 function getHTML(list, rp, sortField, sortDir, groupDirs) {
@@ -58,13 +59,15 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
     const dot = i.name.lastIndexOf('.');
     const ext = dot >= 0 ? i.name.slice(dot + 1).toLowerCase() : '';
     const canPreview = !i.isDir && PREVIEWABLE.has(ext);
+    const isImage = !i.isDir && IMAGE_EXTS.has(ext);
+    const thumb = isImage ? '<img class="thumb" loading="lazy" alt="" src="' + encodedName + '" onerror="this.style.display=\'none\'">' : '';
     const dn = esc(i.name);
     const dlBtn = i.isDir ? '' : '<md-icon-button href="' + encodedName + '?download=1" class="material-icon-button" aria-label="下载" title="下载"><md-icon>download</md-icon></md-icon-button>';
     const previewBtn = canPreview ? '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + dn + '" aria-label="预览" title="预览"><md-icon>visibility</md-icon></md-icon-button>' : '';
     const shareBtn = i.isDir ? '' : '<md-icon-button type="button" class="material-icon-button act-btn" data-act="share" data-name="' + dn + '" aria-label="分享直链" title="分享直链"><md-icon>share</md-icon></md-icon-button>';
     return '<tr class="file-row" data-name="' + dn + '">' +
       '<td class="col-check"><md-checkbox touch-target="wrapper" class="row-cb" data-name="' + dn + '"' + (i.isDir ? ' data-dir="1"' : '') + ' aria-label="选择 ' + dn + '"></md-checkbox></td>' +
-      '<td class="col-icon file-icon">' + icon + '</td>' +
+      '<td class="col-icon file-icon">' + icon + thumb + '</td>' +
       '<td class="col-name file-name"><a href="' + href + '">' + dn + '</a></td>' +
       '<td class="col-size file-size">' + size + '</td>' +
       '<td class="col-time file-time" data-mtime="' + mtimeMs + '">-</td>' +
@@ -89,6 +92,7 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
 <title>${esc(currentLabel)} - winFM</title>
 <link rel="icon" href="${FAVICON}">
 <script>try{var t=localStorage.getItem('fm_theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{if(localStorage.getItem('fm_view')==='grid')document.documentElement.dataset.view='grid'}catch(e){}</script>
 <script>window.__FM=${JSON.stringify({ preview: PREVIEW })}</script>
 <link rel="stylesheet" href="/__fm/app.css?v=${assetVersion('app.css')}">
 <script type="module" src="/__fm/material-web.js?v=${assetVersion('material-web.js')}"></script>
@@ -141,6 +145,7 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
     <md-filled-tonal-button type="button" onclick="showNewFolder()"><md-icon slot="icon">create_new_folder</md-icon>新建文件夹</md-filled-tonal-button>
     <md-outlined-button type="button" onclick="refreshList()"><md-icon slot="icon">refresh</md-icon>刷新</md-outlined-button>
     <${groupDirs?'md-filled-tonal-button':'md-outlined-button'} href="?sort=${sortField}&dir=${sortDir}&group=${groupDirs?0:1}" class="group-toggle" title="切换目录优先显示"><md-icon slot="icon">account_tree</md-icon>目录优先</${groupDirs?'md-filled-tonal-button':'md-outlined-button'}>
+    <md-outlined-button type="button" onclick="toggleView()" title="切换缩略图/列表显示"><md-icon slot="icon" id="viewToggleIcon">grid_view</md-icon><span id="viewToggleLabel">缩略图</span></md-outlined-button>
     <span id="toolbarPaste"></span>
     <div class="filter-box"><md-icon>search</md-icon><input id="filterInput" type="text" placeholder="过滤当前目录" oninput="applyFilter()"></div>
   </div>

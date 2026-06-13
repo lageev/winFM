@@ -353,6 +353,36 @@ md-outlined-text-field{width:100%}
 .sidebar-overlay{display:none;position:fixed;inset:0;z-index:35;background:color-mix(in srgb,var(--md-sys-color-scrim) 50%,transparent);opacity:0;transition:opacity .2s;pointer-events:none}
 .sidebar-overlay.show{opacity:1;pointer-events:auto}
 
+/* 缩略图（图标）视图：复用表格 DOM，仅用 CSS 改为卡片网格 */
+.thumb{display:none}
+[data-view=grid] .table-wrap{padding:16px}
+[data-view=grid] table,[data-view=grid] tbody{display:block}
+[data-view=grid] thead{display:none}
+[data-view=grid] tbody{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+[data-view=grid] tr.file-row{display:flex;flex-direction:column;position:relative;border:1px solid var(--md-sys-color-outline-variant);border-radius:14px;overflow:hidden;background:var(--md-sys-color-surface-container-lowest);cursor:pointer;transition:border-color .12s,box-shadow .12s}
+[data-view=grid] tr.file-row:hover{border-color:var(--md-sys-color-outline);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+[data-view=grid] tr.file-row.selected{border-color:var(--md-sys-color-primary)}
+[data-view=grid] td{display:block;border:0;padding:0}
+[data-view=grid] .file-icon{position:relative;width:auto;height:120px;display:flex;align-items:center;justify-content:center;background:var(--md-sys-color-surface-container)}
+[data-view=grid] .file-icon md-icon{font-size:52px}
+[data-view=grid] .file-icon .thumb{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+[data-view=grid] .col-name{padding:10px 10px 2px;text-align:center}
+[data-view=grid] .file-name a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.4}
+[data-view=grid] .col-size{padding:0 10px 12px;text-align:center;font-size:12px}
+[data-view=grid] .col-time{display:none}
+[data-view=grid] .col-check{position:absolute;top:8px;left:8px;width:auto;padding:0;z-index:2;border-radius:8px;background:color-mix(in srgb,var(--md-sys-color-surface-container) 78%,transparent)}
+[data-view=grid] .col-actions{position:absolute;top:8px;right:8px;width:auto!important;padding:0;text-align:right;z-index:2}
+[data-view=grid] .file-actions .material-icon-button{display:none}
+[data-view=grid] .file-actions .more-btn{display:inline-flex;border-radius:8px;background:color-mix(in srgb,var(--md-sys-color-surface-container) 78%,transparent)}
+[data-view=grid] .empty{padding:48px 20px}
+@media(hover:hover) and (min-width:861px){
+  [data-view=grid] .col-check,[data-view=grid] .file-actions .more-btn{opacity:0;transition:opacity .12s}
+  [data-view=grid] tr.file-row:hover .col-check,
+  [data-view=grid] tr.file-row:hover .file-actions .more-btn,
+  [data-view=grid] tr.selected .col-check,
+  [data-view=grid] tr.selected .file-actions .more-btn{opacity:1}
+}
+
 @media(max-width:860px){
   .app-bar{padding:10px 16px;gap:10px}
   .app-bar-main{flex-direction:column;align-items:flex-start;gap:10px;width:100%}
@@ -378,4 +408,8 @@ md-outlined-text-field{width:100%}
   .sidebar-toggle-mobile{display:inline-flex}
   .sidebar-toggle-desktop{display:none}
   .sidebar-overlay{display:block}
+  [data-view=grid] .table-wrap{padding:10px}
+  [data-view=grid] tbody{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  [data-view=grid] .file-icon{height:100px}
+  [data-view=grid] .col-actions{width:auto!important}
 }

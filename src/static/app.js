@@ -74,6 +74,36 @@ function toggleTheme(){
   applyThemeIcon();
 }
 
+// ── 视图切换：缩略图（图标）/ 列表 ──
+var VIEW_KEY='fm_view';
+function currentView(){
+  try{return localStorage.getItem(VIEW_KEY)==='grid'?'grid':'list'}catch(e){return 'list'}
+}
+function applyViewIcon(){
+  var view=currentView();
+  document.documentElement.dataset.view=view;
+  var icon=document.getElementById('viewToggleIcon');
+  var label=document.getElementById('viewToggleLabel');
+  if(icon) icon.textContent=view==='grid'?'view_list':'grid_view';
+  if(label) label.textContent=view==='grid'?'列表':'缩略图';
+}
+function toggleView(){
+  var next=currentView()==='grid'?'list':'grid';
+  try{localStorage.setItem(VIEW_KEY,next)}catch(e){}
+  applyViewIcon();
+}
+// 缩略图模式下整卡片可点击：图片打开预览，其余跟随名称链接
+document.addEventListener('click',function(e){
+  if(currentView()!=='grid') return;
+  if(e.target.closest('.act-btn,md-checkbox,a,.col-check,md-menu')) return;
+  var card=e.target.closest('tr.file-row');
+  if(!card) return;
+  var prev=card.querySelector('.act-btn[data-act="preview"]');
+  if(prev){previewFile(card.dataset.name);return}
+  var link=card.querySelector('.file-name a');
+  if(link) link.click();
+});
+
 // ── 时间本地化渲染（服务器只传时间戳，避免容器时区问题）──
 function renderTimes(){
   var tds=document.querySelectorAll('.file-time[data-mtime]');
@@ -1231,6 +1261,7 @@ function init(){
   try{renderClipboard()}catch(e){}
   renderTimes();
   applyThemeIcon();
+  applyViewIcon();
   loadDirSize();
   try{renderBookmarks()}catch(e){}
   try{initDirTree()}catch(e){}
