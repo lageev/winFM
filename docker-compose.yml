@@ -8,5 +8,14 @@ services:
     volumes:
       - ${DATA_DIR}:/data
     environment:
-      # 可选：Basic Auth 访问认证，格式 user:pass
+      # 管理员登录鉴权（设置密码后开启，所有文件访问都需登录）
+      - FM_USER=${FM_USER:-admin}
+      - FM_PASS=${FM_PASS:-}
+      # 会话签名密钥，建议设置为随机长字符串以持久化登录态
+      - FM_SECRET=${FM_SECRET:-}
+      # 兼容旧格式 user:pass
       - FM_AUTH=${FM_AUTH:-}
+      # 未登录匿名查看：保留直链查看，限制访问的不同文件数与空闲时效（FM_ANON=0 关闭）
+      - FM_ANON=${FM_ANON:-1}
+      - FM_ANON_LIMIT=${FM_ANON_LIMIT:-20}
+      - FM_ANON_IDLE_MIN=${FM_ANON_IDLE_MIN:-30}

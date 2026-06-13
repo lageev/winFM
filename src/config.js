@@ -1,13 +1,31 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const PORT = Number(process.env.FM_PORT) || 8888;
 const ROOT = path.resolve(process.env.FM_ROOT || '/data');
 try { fs.mkdirSync(ROOT, { recursive: true }); } catch(e) {}
 const REAL_ROOT = fs.realpathSync(ROOT);
 
-// 可选 Basic Auth，格式 "user:pass"，为空则不启用
-const AUTH = process.env.FM_AUTH || '';
+// 管理员登录鉴权：仅单一管理员账户
+// FM_USER / FM_PASS 为推荐写法；FM_AUTH="user:pass" 为旧格式，向后兼容
+const FM_AUTH = process.env.FM_AUTH || '';
+const ADMIN_USER = process.env.FM_USER || FM_AUTH.split(':')[0] || 'admin';
+const ADMIN_PASS = process.env.FM_PASS || (FM_AUTH.includes(':') ? FM_AUTH.slice(FM_AUTH.indexOf(':') + 1) : '');
+// 配置了密码即开启登录鉴权（所有文件访问都需登录，杜绝直链）
+const AUTH_ENABLED = !!ADMIN_PASS;
+// 会话签名密钥：未配置则随机生成（服务重启后需重新登录），配置 FM_SECRET 可持久化会话
+const SESSION_SECRET = process.env.FM_SECRET || crypto.randomBytes(32).toString('hex');
+// 会话有效期（小时），默认 7 天
+const SESSION_TTL = (Number(process.env.FM_SESSION_HOURS) || 168) * 3600 * 1000;
+
+// 未登录匿名查看：保留直链查看权限，但限制可访问的不同文件数与空闲时效
+// FM_ANON=0 可关闭匿名查看（恢复为所有访问都需登录）
+const ANON_ENABLED = process.env.FM_ANON !== '0';
+// 匿名在时效内可查看的不同文件数上限
+const ANON_LIMIT = Number(process.env.FM_ANON_LIMIT) || 20;
+// 空闲多久后匿名访问额度失活并重置（分钟），默认 30
+const ANON_IDLE = (Number(process.env.FM_ANON_IDLE_MIN) || 30) * 60 * 1000;
 
 // 目录大小缓存文件名（存放于 ROOT 下，列表中隐藏）
 const SIZE_CACHE_NAME = '.dirsize-cache.json';
@@ -163,4 +181,8 @@ const MIME = {
   '.cmake':'text/plain',
 };
 
-module.exports = { PORT, ROOT, REAL_ROOT, AUTH, SIZE_CACHE_NAME, THUMB_CACHE_DIR, MIME };
+module.exports = {
+  PORT, ROOT, REAL_ROOT, SIZE_CACHE_NAME, THUMB_CACHE_DIR, MIME,
+  ADMIN_USER, ADMIN_PASS, AUTH_ENABLED, SESSION_SECRET, SESSION_TTL,
+  ANON_ENABLED, ANON_LIMIT, ANON_IDLE,
+};

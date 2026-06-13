@@ -1,6 +1,18 @@
 var currentPath = location.pathname;
 var PV = (window.__FM && window.__FM.preview) || { image: [], video: [], audio: [], text: [] };
 
+// 会话失效（401）时跳转登录页
+(function(){
+  var _fetch=window.fetch;
+  window.fetch=function(){
+    return _fetch.apply(this,arguments).then(function(r){
+      if(r.status===401){location.href='/__fm/login?next='+encodeURIComponent(location.pathname+location.search);}
+      return r;
+    });
+  };
+})();
+function logout(){location.href='/__fm/logout';}
+
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function extOf(name){var dot=name.lastIndexOf('.');return dot>=0?name.slice(dot+1).toLowerCase():''}
 
@@ -711,11 +723,35 @@ document.addEventListener('keydown',function(e){
 });
 
 // ── 分享直链 ──
+var shareTarget='';
 function shareLink(name){
-  var url=location.origin+currentPath+encodeURIComponent(name);
+  shareTarget=name;
   document.getElementById('shareFileName').textContent=name;
-  document.getElementById('shareLinkField').value=url;
+  var field=document.getElementById('shareLinkField');
+  var opts=document.getElementById('shareOptions');
+  var genBtn=document.getElementById('shareGenBtn');
+  // 开启鉴权时生成带次数/有效期的签名链接；否则直接给普通直链
+  if(window.__FM&&window.__FM.auth){
+    field.value='';
+    if(opts)opts.style.display='';
+    if(genBtn)genBtn.style.display='';
+  }else{
+    field.value=location.origin+currentPath+encodeURIComponent(name);
+    if(opts)opts.style.display='none';
+    if(genBtn)genBtn.style.display='none';
+  }
   showDialog('shareModal');
+}
+async function generateShareLink(){
+  var views=parseInt(document.getElementById('shareMaxViews').value,10)||0;
+  var hours=parseFloat(document.getElementById('shareExpireHours').value)||0;
+  try{
+    var r=await fetch(currentPath+'?action=share&name='+encodeURIComponent(shareTarget)+'&views='+views+'&hours='+hours,{method:'POST'});
+    if(!r.ok){showToast('生成失败','info');return;}
+    var d=await r.json();
+    document.getElementById('shareLinkField').value=location.origin+d.path;
+    showToast('链接已生成','success');
+  }catch(e){showToast('生成失败','info');}
 }
 async function copyShareLink(){
   var url=document.getElementById('shareLinkField').value;
@@ -738,7 +774,7 @@ async function copyShareLink(){
       ta.remove();
     }catch(e){}
   }
-  showToast(ok?'直链已复制到剪贴板':'复制失败，请手动复制',ok?'success':'info');
+  showToast(ok?'链接已复制到剪贴板':'复制失败，请手动复制',ok?'success':'info');
 }
 function openShareLink(){
   window.open(document.getElementById('shareLinkField').value,'_blank');
