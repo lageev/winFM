@@ -2,6 +2,7 @@ const { esc, formatSize, itemHref } = require('./utils');
 const { getIcon, PREVIEW } = require('./file-ops');
 const { assetVersion } = require('./handlers/static');
 const { isAuthActive } = require('./auth');
+const { version } = require('../package.json');
 
 const PREVIEWABLE = new Set([].concat(PREVIEW.image, PREVIEW.video, PREVIEW.audio, PREVIEW.text));
 const IMAGE_EXTS = new Set(PREVIEW.image);
@@ -139,6 +140,13 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
       <div class="sidebar-title"><md-icon>account_tree</md-icon> 目录结构</div>
       <div class="tree-container" id="dirTree"></div>
     </div>
+  </div>
+  <div class="sidebar-footer">
+    <a class="sidebar-footer-link" href="https://github.com/lageev/winFM" target="_blank" rel="noopener noreferrer">
+      <md-icon>code</md-icon>
+      <span>GitHub</span>
+    </a>
+    <div class="sidebar-footer-version">winFM v${version}</div>
   </div>
 </aside>
 <main class="main-content">
