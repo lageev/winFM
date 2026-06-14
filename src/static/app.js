@@ -737,6 +737,12 @@ function getShareLinkValue(){
   var val=field&&field.value?String(field.value).trim():'';
   return val||shareUrl;
 }
+function getShareLinkInput(){
+  var field=document.getElementById('shareLinkField');
+  if(!field)return null;
+  if(field.shadowRoot)return field.shadowRoot.querySelector('input,textarea');
+  return field.matches&&field.matches('input,textarea')?field:null;
+}
 function selectShareLinkField(){
   var field=document.getElementById('shareLinkField');
   if(!field)return;
@@ -744,7 +750,7 @@ function selectShareLinkField(){
     field.focus();
     if(typeof field.select==='function')field.select();
     else if(field.shadowRoot){
-      var inner=field.shadowRoot.querySelector('input,textarea');
+      var inner=getShareLinkInput();
       if(inner){inner.focus();inner.select&&inner.select();}
     }
   }catch(e){}
@@ -815,19 +821,8 @@ function copyShareLink(){
   fallbackCopy(text);
 }
 function fallbackCopy(text){
-  var ok=false;
-  try{
-    var ta=document.createElement('textarea');
-    ta.value=text;
-    ta.setAttribute('readonly','');
-    ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.01;z-index:99999;font-size:16px';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    ta.setSelectionRange(0,ta.value.length);
-    ok=document.execCommand('copy');
-    document.body.removeChild(ta);
-  }catch(e){ok=false;}
+  var ok=copyFromShareField();
+  if(!ok)ok=copyFromTemporaryTextarea(text);
   if(ok){
     flashShareCopyButton('已复制','check_circle');
     showToast('链接已复制到剪贴板','success');
@@ -835,7 +830,37 @@ function fallbackCopy(text){
     // 最终备用：选中输入框内容让用户手动 Ctrl+C。
     selectShareLinkField();
     flashShareCopyButton('已选中','content_copy');
-    showToast('请手动 Ctrl+C 复制','info');
+    showToast('已选中链接，请按 Ctrl+C 复制','info');
+  }
+}
+function copyFromShareField(){
+  var input=getShareLinkInput();
+  if(!input)return false;
+  try{
+    input.focus();
+    input.select&&input.select();
+    input.setSelectionRange&&input.setSelectionRange(0,input.value.length);
+    return document.execCommand('copy');
+  }catch(e){return false;}
+}
+function copyFromTemporaryTextarea(text){
+  var ta=null;
+  try{
+    var container=document.querySelector('#shareModal .dialog-content')||document.getElementById('shareModal')||document.body;
+    ta=document.createElement('textarea');
+    ta.value=text;
+    ta.setAttribute('aria-hidden','true');
+    ta.setAttribute('inputmode','none');
+    ta.style.cssText='position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;z-index:99999;font-size:16px;border:0;padding:0';
+    container.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0,ta.value.length);
+    var ok=document.execCommand('copy');
+    return ok;
+  }catch(e){return false;}
+  finally{
+    if(ta&&ta.parentNode)ta.parentNode.removeChild(ta);
   }
 }
 function openShareLink(){
