@@ -724,20 +724,18 @@ document.addEventListener('keydown',function(e){
 
 // ── 分享直链 ──
 var shareTarget='';
-var shareLinkFresh=false;
+var shareUrl='';
 function updateShareBtnState(){
-  var field=document.getElementById('shareLinkField');
-  var val=field?(field.value||''):'';
   var btns=document.querySelectorAll('#shareModal .modal-actions md-filled-button,#shareModal .modal-actions md-outlined-button');
-  btns.forEach(function(b){b.disabled=!val;});
+  btns.forEach(function(b){b.disabled=!shareUrl;});
 }
 function shareLink(name){
   shareTarget=name;
+  shareUrl='';
   document.getElementById('shareFileName').textContent=name;
   var field=document.getElementById('shareLinkField');
   var opts=document.getElementById('shareOptions');
   var genBtn=document.getElementById('shareGenBtn');
-  shareLinkFresh=false;
   // 开启鉴权时自动用默认参数生成签名链接；否则直接给普通直链
   if(window.__FM&&window.__FM.auth){
     field.value='';
@@ -746,10 +744,10 @@ function shareLink(name){
     updateShareBtnState();
     generateShareLink();
   }else{
-    field.value=location.origin+currentPath+encodeURIComponent(name);
+    shareUrl=location.origin+currentPath+encodeURIComponent(name);
+    field.value=shareUrl;
     if(opts)opts.style.display='none';
     if(genBtn)genBtn.style.display='none';
-    shareLinkFresh=true;
     updateShareBtnState();
   }
   showDialog('shareModal');
@@ -761,45 +759,58 @@ async function generateShareLink(){
     var r=await fetch(currentPath+'?action=share&name='+encodeURIComponent(shareTarget)+'&views='+views+'&hours='+hours,{method:'POST'});
     if(!r.ok){showToast('生成失败','info');return;}
     var d=await r.json();
-    document.getElementById('shareLinkField').value=location.origin+d.path;
-    shareLinkFresh=true;
+    shareUrl=location.origin+d.path;
+    document.getElementById('shareLinkField').value=shareUrl;
     updateShareBtnState();
     showToast('链接已生成','success');
   }catch(e){showToast('生成失败','info');}
 }
-async function copyShareLink(){
-  var url=document.getElementById('shareLinkField').value;
-  if(!url)return;
+function copyShareLink(){
+  if(!shareUrl)return;
+  // 方式1：Clipboard API（需 HTTPS 或 localhost）
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(shareUrl).then(function(){
+      showToast('链接已复制到剪贴板','success');
+    }).catch(function(){
+      fallbackCopy();
+    });
+    return;
+  }
+  fallbackCopy();
+}
+function fallbackCopy(){
   var ok=false;
   try{
     var ta=document.createElement('textarea');
-    ta.value=url;
-    ta.style.cssText='position:fixed;opacity:0;left:-9999px';
+    ta.value=shareUrl;
+    ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;width:200px;height:40px;opacity:0.01;z-index:99999;font-size:16px';
     document.body.appendChild(ta);
     ta.focus();
-    ta.select();
+    ta.setSelectionRange(0,ta.value.length);
     ok=document.execCommand('copy');
-    ta.remove();
+    document.body.removeChild(ta);
   }catch(e){ok=false;}
-  if(!ok){
-    try{
-      if(navigator.clipboard&&navigator.clipboard.writeText){
-        await navigator.clipboard.writeText(url);
-        ok=true;
-      }
-    }catch(e){}
+  if(ok){
+    showToast('链接已复制到剪贴板','success');
+  }else{
+    // 最终备用：选中输入框内容让用户手动 Ctrl+C
+    var field=document.getElementById('shareLinkField');
+    if(field){
+      var inner=field.shadowRoot?field.shadowRoot.querySelector('input,textarea'):field;
+      if(inner){inner.focus();inner.select&&inner.select();}
+    }
+    showToast('请手动 Ctrl+C 复制','info');
   }
-  showToast(ok?'链接已复制到剪贴板':'复制失败，请手动复制',ok?'success':'info');
 }
 function openShareLink(){
-  var url=document.getElementById('shareLinkField').value;
-  if(url)window.open(url,'_blank');
+  if(shareUrl)window.open(shareUrl,'_blank');
 }
 document.addEventListener('DOMContentLoaded',function(){
   ['shareMaxViews','shareExpireHours'].forEach(function(id){
     var el=document.getElementById(id);
     if(el)el.addEventListener('input',function(){
-      shareLinkFresh=false;
+      shareUrl='';
       updateShareBtnState();
     });
   });
