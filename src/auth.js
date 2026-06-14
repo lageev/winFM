@@ -1,6 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const { esc } = require('./utils');
+const { version } = require('../package.json');
 const {
   ADMIN_USER, ADMIN_PASS, SESSION_SECRET, SESSION_TTL,
   ANON_ENABLED, ANON_LIMIT, ANON_IDLE, CRED_FILE, OPEN_MODE,
@@ -125,7 +126,7 @@ function readBody(req, limit, cb) {
 const PAGE_CSS = `:root{--bg:#EAE8DE;--card:#fff;--fg:#30302E;--muted:#6b6a64;--brand:#C96442;--border:#dcd9cc;--field:#f5f3ea}
 @media(prefers-color-scheme:dark){:root{--bg:#1f1f1d;--card:#30302E;--fg:#eceae2;--muted:#a8a69c;--border:#46453f;--field:#3a3a37}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;padding:24px}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;padding:24px}
 .card{width:100%;max-width:360px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;box-shadow:0 12px 40px rgba(0,0,0,.12)}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
 .mark{width:44px;height:44px;border-radius:12px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
@@ -137,7 +138,10 @@ input{width:100%;padding:12px 14px;font-size:15px;color:var(--fg);background:var
 input:focus{border-color:var(--brand)}
 button{width:100%;margin-top:24px;padding:13px;font-size:15px;font-weight:600;color:#fff;background:var(--brand);border:none;border-radius:10px;cursor:pointer}
 button:hover{filter:brightness(.95)}
-.err{margin-top:16px;padding:10px 14px;font-size:13px;color:#b3261e;background:rgba(179,38,30,.1);border-radius:10px}`;
+.err{margin-top:16px;padding:10px 14px;font-size:13px;color:#b3261e;background:rgba(179,38,30,.1);border-radius:10px}
+.auth-footer{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;opacity:.5;font-size:11px;color:var(--muted)}
+.auth-footer a{color:var(--muted);display:inline-flex;transition:opacity .12s}
+.auth-footer a:hover{opacity:.7}`;
 
 const BRAND_SVG = '<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
 
@@ -161,6 +165,10 @@ function authPage(title, subtitle, formInner) {
   </div>
   ${formInner}
 </form>
+<div class="auth-footer">
+  <a href="https://github.com/lageev/winFM" target="_blank" rel="noopener noreferrer" title="GitHub"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  <span>winFM v${version}</span>
+</div>
 </body>
 </html>`;
 }
