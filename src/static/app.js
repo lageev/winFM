@@ -726,8 +726,41 @@ document.addEventListener('keydown',function(e){
 var shareTarget='';
 var shareUrl='';
 function updateShareBtnState(){
-  var btns=document.querySelectorAll('#shareModal .modal-actions md-filled-button,#shareModal .modal-actions md-outlined-button');
-  btns.forEach(function(b){b.disabled=!shareUrl;});
+  var hasLink=!!getShareLinkValue();
+  ['shareOpenBtn','shareCopyBtn'].forEach(function(id){
+    var btn=document.getElementById(id);
+    if(btn)btn.disabled=!hasLink;
+  });
+}
+function getShareLinkValue(){
+  var field=document.getElementById('shareLinkField');
+  var val=field&&field.value?String(field.value).trim():'';
+  return val||shareUrl;
+}
+function selectShareLinkField(){
+  var field=document.getElementById('shareLinkField');
+  if(!field)return;
+  try{
+    field.focus();
+    if(typeof field.select==='function')field.select();
+    else if(field.shadowRoot){
+      var inner=field.shadowRoot.querySelector('input,textarea');
+      if(inner){inner.focus();inner.select&&inner.select();}
+    }
+  }catch(e){}
+}
+function flashShareCopyButton(text,icon){
+  var btn=document.getElementById('shareCopyBtn');
+  if(!btn)return;
+  var iconEl=btn.querySelector('md-icon');
+  var label=btn.querySelector('.btn-label');
+  if(iconEl)iconEl.textContent=icon||'check_circle';
+  if(label)label.textContent=text;
+  clearTimeout(btn._flashTimer);
+  btn._flashTimer=setTimeout(function(){
+    if(iconEl)iconEl.textContent='content_copy';
+    if(label)label.textContent='复制链接';
+  },1800);
 }
 function shareLink(name){
   shareTarget=name;
@@ -766,51 +799,56 @@ async function generateShareLink(){
   }catch(e){showToast('生成失败','info');}
 }
 function copyShareLink(){
-  if(!shareUrl)return;
-  // 方式1：Clipboard API（需 HTTPS 或 localhost）
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(shareUrl).then(function(){
+  var text=getShareLinkValue();
+  if(!text){showToast('请先生成链接','info');return;}
+  shareUrl=text;
+  // Clipboard API 只在安全上下文（HTTPS / localhost）可靠；局域网 HTTP 同步走兜底复制。
+  if(window.isSecureContext&&navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      flashShareCopyButton('已复制','check_circle');
       showToast('链接已复制到剪贴板','success');
     }).catch(function(){
-      fallbackCopy();
+      fallbackCopy(text);
     });
     return;
   }
-  fallbackCopy();
+  fallbackCopy(text);
 }
-function fallbackCopy(){
+function fallbackCopy(text){
   var ok=false;
   try{
     var ta=document.createElement('textarea');
-    ta.value=shareUrl;
+    ta.value=text;
     ta.setAttribute('readonly','');
-    ta.style.cssText='position:fixed;top:0;left:0;width:200px;height:40px;opacity:0.01;z-index:99999;font-size:16px';
+    ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.01;z-index:99999;font-size:16px';
     document.body.appendChild(ta);
     ta.focus();
+    ta.select();
     ta.setSelectionRange(0,ta.value.length);
     ok=document.execCommand('copy');
     document.body.removeChild(ta);
   }catch(e){ok=false;}
   if(ok){
+    flashShareCopyButton('已复制','check_circle');
     showToast('链接已复制到剪贴板','success');
   }else{
-    // 最终备用：选中输入框内容让用户手动 Ctrl+C
-    var field=document.getElementById('shareLinkField');
-    if(field){
-      var inner=field.shadowRoot?field.shadowRoot.querySelector('input,textarea'):field;
-      if(inner){inner.focus();inner.select&&inner.select();}
-    }
+    // 最终备用：选中输入框内容让用户手动 Ctrl+C。
+    selectShareLinkField();
+    flashShareCopyButton('已选中','content_copy');
     showToast('请手动 Ctrl+C 复制','info');
   }
 }
 function openShareLink(){
-  if(shareUrl)window.open(shareUrl,'_blank');
+  var text=getShareLinkValue();
+  if(text)window.open(text,'_blank');
 }
 document.addEventListener('DOMContentLoaded',function(){
   ['shareMaxViews','shareExpireHours'].forEach(function(id){
     var el=document.getElementById(id);
     if(el)el.addEventListener('input',function(){
       shareUrl='';
+      var field=document.getElementById('shareLinkField');
+      if(field)field.value='';
       updateShareBtnState();
     });
   });

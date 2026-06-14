@@ -223,9 +223,9 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
   <div slot="headline" class="dialog-headline"><md-icon>share</md-icon><span>分享直链</span></div>
   <div slot="content" class="dialog-content">
     <div id="shareFileName" class="dialog-support"></div>
-    <div id="shareOptions" style="display:flex;gap:12px;flex-wrap:wrap">
-      <md-outlined-text-field id="shareMaxViews" type="number" min="0" value="0" label="查看次数" supporting-text="0=不限" style="flex:1;min-width:130px"></md-outlined-text-field>
-      <md-outlined-text-field id="shareExpireHours" type="number" min="0" value="24" label="有效期(小时)" supporting-text="0=永久" style="flex:1;min-width:130px"></md-outlined-text-field>
+    <div id="shareOptions" class="share-options">
+      <md-outlined-text-field id="shareMaxViews" class="share-option-field" type="number" min="0" value="0" label="查看次数" suffix-text="0=不限" no-spinner></md-outlined-text-field>
+      <md-outlined-text-field id="shareExpireHours" class="share-option-field" type="number" min="0" value="24" label="有效期(小时)" suffix-text="0=永久" no-spinner></md-outlined-text-field>
     </div>
     <md-outlined-text-field id="shareLinkField" label="链接地址" readonly></md-outlined-text-field>
     <div class="dialog-support">${!AUTH_ENABLED ? '任何能访问本服务的人都可通过该链接直接打开此文件。' : '凭此链接无需登录即可查看本文件，受上面设置的查看次数与有效期限制。'}</div>
@@ -233,8 +233,8 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
   <div slot="actions" class="modal-actions">
     <md-text-button type="button" onclick="closeModal('shareModal')">关闭</md-text-button>
     <md-filled-tonal-button type="button" id="shareGenBtn" onclick="generateShareLink()"><md-icon slot="icon">link</md-icon>生成链接</md-filled-tonal-button>
-    <md-outlined-button type="button" onclick="openShareLink()"><md-icon slot="icon">open_in_new</md-icon>打开</md-outlined-button>
-    <md-filled-button type="button" onclick="copyShareLink()"><md-icon slot="icon">content_copy</md-icon>复制链接</md-filled-button>
+    <md-outlined-button type="button" id="shareOpenBtn" onclick="openShareLink()"><md-icon slot="icon">open_in_new</md-icon>打开</md-outlined-button>
+    <md-filled-button type="button" id="shareCopyBtn" onclick="copyShareLink()"><md-icon slot="icon">content_copy</md-icon><span class="btn-label">复制链接</span></md-filled-button>
   </div>
 </md-dialog>
 

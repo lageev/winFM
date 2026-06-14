@@ -216,6 +216,8 @@ tr.selected{background:color-mix(in srgb,var(--md-sys-color-primary) 12%,transpa
 .dialog-headline.danger md-icon{color:var(--md-sys-color-error)}
 .dialog-content{display:flex;flex-direction:column;gap:16px}
 .dialog-support{font-size:14px;color:var(--md-sys-color-on-surface-variant);word-break:break-all}
+.share-options{display:flex;gap:12px;flex-wrap:wrap}
+.share-option-field{flex:1 1 220px;min-width:180px;width:auto}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end}
 md-outlined-text-field{width:100%}
 .upload-area{border:2px dashed var(--md-sys-color-outline);border-radius:16px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;background:var(--md-sys-color-surface-container-low)}
