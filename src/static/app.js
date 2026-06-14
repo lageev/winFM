@@ -724,21 +724,33 @@ document.addEventListener('keydown',function(e){
 
 // ── 分享直链 ──
 var shareTarget='';
+var shareLinkFresh=false;
+function updateShareBtnState(){
+  var field=document.getElementById('shareLinkField');
+  var val=field?(field.value||''):'';
+  var btns=document.querySelectorAll('#shareModal .modal-actions md-filled-button,#shareModal .modal-actions md-outlined-button');
+  btns.forEach(function(b){b.disabled=!val;});
+}
 function shareLink(name){
   shareTarget=name;
   document.getElementById('shareFileName').textContent=name;
   var field=document.getElementById('shareLinkField');
   var opts=document.getElementById('shareOptions');
   var genBtn=document.getElementById('shareGenBtn');
-  // 开启鉴权时生成带次数/有效期的签名链接；否则直接给普通直链
+  shareLinkFresh=false;
+  // 开启鉴权时自动用默认参数生成签名链接；否则直接给普通直链
   if(window.__FM&&window.__FM.auth){
     field.value='';
     if(opts)opts.style.display='';
     if(genBtn)genBtn.style.display='';
+    updateShareBtnState();
+    generateShareLink();
   }else{
     field.value=location.origin+currentPath+encodeURIComponent(name);
     if(opts)opts.style.display='none';
     if(genBtn)genBtn.style.display='none';
+    shareLinkFresh=true;
+    updateShareBtnState();
   }
   showDialog('shareModal');
 }
@@ -750,35 +762,48 @@ async function generateShareLink(){
     if(!r.ok){showToast('生成失败','info');return;}
     var d=await r.json();
     document.getElementById('shareLinkField').value=location.origin+d.path;
+    shareLinkFresh=true;
+    updateShareBtnState();
     showToast('链接已生成','success');
   }catch(e){showToast('生成失败','info');}
 }
 async function copyShareLink(){
   var url=document.getElementById('shareLinkField').value;
+  if(!url)return;
   var ok=false;
   try{
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(url);
-      ok=true;
-    }
-  }catch(e){}
+    var ta=document.createElement('textarea');
+    ta.value=url;
+    ta.style.cssText='position:fixed;opacity:0;left:-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ok=document.execCommand('copy');
+    ta.remove();
+  }catch(e){ok=false;}
   if(!ok){
     try{
-      var ta=document.createElement('textarea');
-      ta.value=url;
-      ta.style.position='fixed';
-      ta.style.opacity='0';
-      document.body.appendChild(ta);
-      ta.select();
-      ok=document.execCommand('copy');
-      ta.remove();
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(url);
+        ok=true;
+      }
     }catch(e){}
   }
   showToast(ok?'链接已复制到剪贴板':'复制失败，请手动复制',ok?'success':'info');
 }
 function openShareLink(){
-  window.open(document.getElementById('shareLinkField').value,'_blank');
+  var url=document.getElementById('shareLinkField').value;
+  if(url)window.open(url,'_blank');
 }
+document.addEventListener('DOMContentLoaded',function(){
+  ['shareMaxViews','shareExpireHours'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener('input',function(){
+      shareLinkFresh=false;
+      updateShareBtnState();
+    });
+  });
+});
 
 // ── 剪贴板式移动/复制 ──
 function setClipboard(name,action){
