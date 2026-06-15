@@ -64,7 +64,8 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
     const ext = dot >= 0 ? i.name.slice(dot + 1).toLowerCase() : '';
     const canPreview = !i.isDir && PREVIEWABLE.has(ext);
     const isImage = !i.isDir && THUMB_EXTS.has(ext);
-    const thumb = isImage ? '<img class="thumb" loading="lazy" alt="" src="' + encodedName + '?thumb=1" onload="this.classList.add(\'loaded\')" onerror="this.style.display=\'none\'">' : '';
+    const thumbQuery = ext === 'heic' || ext === 'heif' ? '?thumb=3' : '?thumb=1';
+    const thumb = isImage ? '<img class="thumb" loading="lazy" alt="" src="' + encodedName + thumbQuery + '" onload="this.classList.add(\'loaded\')" onerror="this.style.display=\'none\'">' : '';
     const dn = esc(i.name);
     const dlBtn = i.isDir ? '' : '<md-icon-button href="' + encodedName + '?download=1" class="material-icon-button" aria-label="下载" title="下载"><md-icon>download</md-icon></md-icon-button>';
     const previewBtn = canPreview ? '<md-icon-button type="button" class="material-icon-button act-btn" data-act="preview" data-name="' + dn + '" aria-label="预览" title="预览"><md-icon>visibility</md-icon></md-icon-button>' : '';

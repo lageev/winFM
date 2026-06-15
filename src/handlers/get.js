@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
+const os = require('os');
 const { pathExists, realPathInsideRoot, attachmentDisposition } = require('../utils');
 const { MIME, SIZE_CACHE_NAME, THUMB_CACHE_DIR, AUTH_FILE } = require('../config');
 const { getHTML } = require('../template');
@@ -14,6 +15,7 @@ const { execFile } = require('child_process');
 const THUMB_EXTS = new Set(['.jpg','.jpeg','.png','.gif','.webp','.bmp','.tiff','.tif','.avif','.heic','.heif']);
 const VIDEO_EXTS = new Set(['.mp4','.webm','.mkv','.mov','.m4v']);
 const HEIC_EXTS = new Set(['.heic', '.heif']);
+const HEIC_CONVERT_VERSION = 3;
 const THUMB_WIDTH = 300;
 const THUMB_MAX = 200; // 内存 LRU 上限
 const MAX_CONCURRENT = 3; // 后台生成并发上限
@@ -21,38 +23,40 @@ const MAX_CONCURRENT = 3; // 后台生成并发上限
 // ── 内存 LRU 缓存 ──
 const thumbCache = new Map();
 
-function thumbKey(fp, mtimeMs) { return fp + ':' + mtimeMs; }
+function thumbKey(fp, mtimeMs, ext) {
+  return fp + ':' + mtimeMs + (HEIC_EXTS.has(ext) ? ':heic-v' + HEIC_CONVERT_VERSION : '');
+}
 
-function thumbMemGet(fp, mtimeMs) {
-  const k = thumbKey(fp, mtimeMs);
+function thumbMemGet(fp, mtimeMs, ext) {
+  const k = thumbKey(fp, mtimeMs, ext);
   const hit = thumbCache.get(k);
   if (hit) { thumbCache.delete(k); thumbCache.set(k, hit); }
   return hit;
 }
 
-function thumbMemSet(fp, mtimeMs, buf) {
-  const k = thumbKey(fp, mtimeMs);
+function thumbMemSet(fp, mtimeMs, ext, buf) {
+  const k = thumbKey(fp, mtimeMs, ext);
   if (thumbCache.has(k)) thumbCache.delete(k);
   thumbCache.set(k, { buf, size: buf.length });
   while (thumbCache.size > THUMB_MAX) { thumbCache.delete(thumbCache.keys().next().value); }
 }
 
 // ── 磁盘缓存 ──
-function diskCacheKey(fp, mtimeMs) {
-  return crypto.createHash('md5').update(fp + ':' + mtimeMs).digest('hex') + '.jpg';
+function diskCacheKey(fp, mtimeMs, ext) {
+  return crypto.createHash('md5').update(thumbKey(fp, mtimeMs, ext)).digest('hex') + '.jpg';
 }
 
-async function thumbDiskGet(fp, mtimeMs) {
-  const file = path.join(THUMB_CACHE_DIR, diskCacheKey(fp, mtimeMs));
+async function thumbDiskGet(fp, mtimeMs, ext) {
+  const file = path.join(THUMB_CACHE_DIR, diskCacheKey(fp, mtimeMs, ext));
   try {
     const buf = await fs.promises.readFile(file);
-    thumbMemSet(fp, mtimeMs, buf);
+    thumbMemSet(fp, mtimeMs, ext, buf);
     return buf;
   } catch(e) { return null; }
 }
 
-async function thumbDiskSet(fp, mtimeMs, buf) {
-  const file = path.join(THUMB_CACHE_DIR, diskCacheKey(fp, mtimeMs));
+async function thumbDiskSet(fp, mtimeMs, ext, buf) {
+  const file = path.join(THUMB_CACHE_DIR, diskCacheKey(fp, mtimeMs, ext));
   try { await fs.promises.writeFile(file, buf); } catch(e) {}
 }
 
@@ -115,9 +119,77 @@ function isAuxiliaryStream(stream) {
   return /auxiliary|auxl|depth|disparity|alpha|gain|semantic|portrait|thumbnail|thumb|preview/.test(streamText(stream));
 }
 
+function parseStreamItemId(stream) {
+  const values = [
+    stream.id,
+    stream.tags && stream.tags.id,
+    stream.tags && stream.tags.item_id,
+    stream.tags && stream.tags.heif_item_id,
+  ];
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const text = String(value).trim();
+    if (/^0x[0-9a-f]+$/i.test(text)) return parseInt(text, 16);
+    if (/^\d+$/.test(text)) return Number(text);
+  }
+  return null;
+}
+
 function streamIndex(stream) {
   const index = Number(stream.index);
   return Number.isFinite(index) ? index : Number.MAX_SAFE_INTEGER;
+}
+
+function parseBoxes(buf, start, end, visitor) {
+  let offset = start;
+  while (offset + 8 <= end) {
+    let size = buf.readUInt32BE(offset);
+    const type = buf.toString('ascii', offset + 4, offset + 8);
+    let headerSize = 8;
+    if (size === 1) {
+      if (offset + 16 > end) return null;
+      const largeSize = Number(buf.readBigUInt64BE(offset + 8));
+      if (!Number.isSafeInteger(largeSize)) return null;
+      size = largeSize;
+      headerSize = 16;
+    } else if (size === 0) {
+      size = end - offset;
+    }
+    if (size < headerSize || offset + size > end) return null;
+
+    const boxStart = offset + headerSize;
+    const boxEnd = offset + size;
+    const result = visitor(type, boxStart, boxEnd);
+    if (result !== undefined && result !== null) return result;
+
+    if (type === 'meta' && boxStart + 4 <= boxEnd) {
+      const nested = parseBoxes(buf, boxStart + 4, boxEnd, visitor);
+      if (nested !== undefined && nested !== null) return nested;
+    } else if (type === 'moov' || type === 'udta') {
+      const nested = parseBoxes(buf, boxStart, boxEnd, visitor);
+      if (nested !== undefined && nested !== null) return nested;
+    }
+
+    offset += size;
+  }
+  return null;
+}
+
+async function readHeifPrimaryItemId(fp) {
+  try {
+    const buf = await fs.promises.readFile(fp);
+    return parseBoxes(buf, 0, buf.length, (type, boxStart, boxEnd) => {
+      if (type !== 'pitm' || boxStart + 6 > boxEnd) return null;
+      const version = buf[boxStart];
+      const itemIdOffset = boxStart + 4;
+      if (version === 0) return buf.readUInt16BE(itemIdOffset);
+      if (itemIdOffset + 4 <= boxEnd) return buf.readUInt32BE(itemIdOffset);
+      return null;
+    });
+  } catch (e) {
+    return null;
+  }
 }
 
 async function probeVideoStreams(fp) {
@@ -146,6 +218,12 @@ async function selectPrimaryImageStream(fp) {
   );
   if (!streams.length) return '0:v:0';
 
+  const primaryItemId = await readHeifPrimaryItemId(fp);
+  if (primaryItemId !== null) {
+    const primary = streams.find(stream => parseStreamItemId(stream) === primaryItemId);
+    if (primary) return '0:' + streamIndex(primary);
+  }
+
   let candidates = streams.filter(stream => !isAuxiliaryStream(stream));
   const colorCandidates = candidates.filter(stream => !isGrayStream(stream));
   if (colorCandidates.length) candidates = colorCandidates;
@@ -163,6 +241,29 @@ async function selectPrimaryImageStream(fp) {
 
   const index = streamIndex(candidates[0]);
   return index === Number.MAX_SAFE_INTEGER ? '0:v:0' : '0:' + index;
+}
+
+async function sipsImageToJpeg(fp, opts) {
+  if (process.platform !== 'darwin') throw new Error('sips is unavailable');
+  opts = opts || {};
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'winfm-heic-'));
+  const out = path.join(dir, 'preview.jpg');
+  try {
+    await new Promise((resolve, reject) => {
+      const args = ['-s', 'format', 'jpeg'];
+      if (opts.width) args.push('-Z', String(opts.width));
+      args.push(fp, '--out', out);
+      execFile('sips', args, { maxBuffer: 1024 * 1024, timeout: 20000 }, err => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    const buf = await fs.promises.readFile(out);
+    if (!buf.length) throw new Error('no image');
+    return buf;
+  } finally {
+    fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 async function ffmpegImageToJpeg(fp, opts) {
@@ -193,6 +294,9 @@ async function heicToJpeg(fp, opts) {
     if (opts.width) image = image.resize({ width: opts.width, withoutEnlargement: true });
     return image.jpeg({ quality, mozjpeg: true }).toBuffer();
   }
+  try {
+    return await sipsImageToJpeg(fp, { width: opts.width, quality });
+  } catch (e) {}
   return ffmpegImageToJpeg(fp, { width: opts.width, quality });
 }
 
@@ -217,14 +321,14 @@ async function extractVideoFrame(fp) {
 
 // ── 核心：生成缩略图（带请求合并）──
 async function generateThumb(fp, ext, mtimeMs) {
-  const k = thumbKey(fp, mtimeMs);
+  const k = thumbKey(fp, mtimeMs, ext);
 
   // 内存命中
-  const mem = thumbMemGet(fp, mtimeMs);
+  const mem = thumbMemGet(fp, mtimeMs, ext);
   if (mem) return mem.buf;
 
   // 磁盘命中
-  const disk = await thumbDiskGet(fp, mtimeMs);
+  const disk = await thumbDiskGet(fp, mtimeMs, ext);
   if (disk) return disk;
 
   // 请求合并
@@ -246,8 +350,8 @@ async function generateThumb(fp, ext, mtimeMs) {
         buf = await sharp(fp).resize({ width: THUMB_WIDTH, withoutEnlargement: true })
           .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
       }
-      thumbMemSet(fp, mtimeMs, buf);
-      thumbDiskSet(fp, mtimeMs, buf); // 异步写磁盘，不阻塞返回
+      thumbMemSet(fp, mtimeMs, ext, buf);
+      thumbDiskSet(fp, mtimeMs, ext, buf); // 异步写磁盘，不阻塞返回
       return buf;
     } finally {
       inflight.delete(k);
@@ -267,7 +371,7 @@ function queueThumb(items, dirPath) {
     if (!THUMB_EXTS.has(ext)) continue;
     if (!sharp && !HEIC_EXTS.has(ext)) continue;
     const fp = path.join(dirPath, item.name);
-    const k = thumbKey(fp, item.mtime ? new Date(item.mtime).getTime() : 0);
+    const k = thumbKey(fp, item.mtime ? new Date(item.mtime).getTime() : 0, ext);
     if (thumbCache.has(k) || inflight.has(k)) continue;
     pendingQueue.push({ fp, ext });
   }
@@ -378,7 +482,7 @@ async function handleGet(req, res, url, rp, fp) {
 
   // HEIC/HEIF 预览：浏览器不支持直接显示，服务端转 JPEG 后返回
   if (HEIC_EXTS.has(ext) && !download) {
-    const heicEtag = 'W/"heic-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
+    const heicEtag = 'W/"heic-v' + HEIC_CONVERT_VERSION + '-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
     if (req.headers['if-none-match'] === heicEtag) { res.writeHead(304); res.end(); return; }
     try {
       const buf = await heicToJpeg(fp, { quality: 92 });

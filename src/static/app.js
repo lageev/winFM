@@ -669,7 +669,7 @@ async function renderPreview(name){
   content.innerHTML='';
 
   if(PV.image.indexOf(ext)>=0){
-    var imageUrl=url+(isHeicExt(ext)?'?preview=1':'');
+    var imageUrl=url+(isHeicExt(ext)?'?preview=3':'');
     content.innerHTML='<img src="'+imageUrl+'" alt="'+esc(name)+'">';
     var img=content.querySelector('img');
     img.addEventListener('error',function(){
