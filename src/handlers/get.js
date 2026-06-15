@@ -97,14 +97,83 @@ function sharpCanReadHeic() {
   return Array.isArray(suffixes) && (suffixes.includes('.heic') || suffixes.includes('.heif'));
 }
 
+function streamText(stream) {
+  return JSON.stringify({
+    codec_name: stream.codec_name,
+    profile: stream.profile,
+    pix_fmt: stream.pix_fmt,
+    disposition: stream.disposition,
+    tags: stream.tags,
+  }).toLowerCase();
+}
+
+function isGrayStream(stream) {
+  return /^gray|^monob|^monow/.test(String(stream.pix_fmt || '').toLowerCase());
+}
+
+function isAuxiliaryStream(stream) {
+  return /auxiliary|auxl|depth|disparity|alpha|gain|semantic|portrait|thumbnail|thumb|preview/.test(streamText(stream));
+}
+
+function streamIndex(stream) {
+  const index = Number(stream.index);
+  return Number.isFinite(index) ? index : Number.MAX_SAFE_INTEGER;
+}
+
+async function probeVideoStreams(fp) {
+  return await new Promise(resolve => {
+    execFile('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 'v',
+      '-show_streams',
+      '-print_format', 'json',
+      fp,
+    ], { maxBuffer: 2 * 1024 * 1024, timeout: 10000 }, (err, stdout) => {
+      if (err) { resolve([]); return; }
+      try {
+        const json = JSON.parse(stdout);
+        resolve(Array.isArray(json.streams) ? json.streams : []);
+      } catch (e) {
+        resolve([]);
+      }
+    });
+  });
+}
+
+async function selectPrimaryImageStream(fp) {
+  const streams = (await probeVideoStreams(fp)).filter(stream =>
+    Number(stream.width) > 0 && Number(stream.height) > 0
+  );
+  if (!streams.length) return '0:v:0';
+
+  let candidates = streams.filter(stream => !isAuxiliaryStream(stream));
+  const colorCandidates = candidates.filter(stream => !isGrayStream(stream));
+  if (colorCandidates.length) candidates = colorCandidates;
+  if (!candidates.length) candidates = streams;
+
+  candidates.sort((a, b) => {
+    const aDefault = a.disposition && a.disposition.default ? 1 : 0;
+    const bDefault = b.disposition && b.disposition.default ? 1 : 0;
+    if (aDefault !== bDefault) return bDefault - aDefault;
+    const aArea = Number(a.width) * Number(a.height);
+    const bArea = Number(b.width) * Number(b.height);
+    if (aArea !== bArea) return bArea - aArea;
+    return streamIndex(a) - streamIndex(b);
+  });
+
+  const index = streamIndex(candidates[0]);
+  return index === Number.MAX_SAFE_INTEGER ? '0:v:0' : '0:' + index;
+}
+
 async function ffmpegImageToJpeg(fp, opts) {
   opts = opts || {};
+  const streamSpecifier = await selectPrimaryImageStream(fp);
   await acquireFfmpeg();
   try {
     return await new Promise((resolve, reject) => {
-      const args = ['-hide_banner', '-loglevel', 'error', '-i', fp, '-frames:v', '1'];
+      const args = ['-hide_banner', '-loglevel', 'error', '-i', fp, '-map', streamSpecifier, '-frames:v', '1'];
       if (opts.width) args.push('-vf', 'scale=' + opts.width + ':-2');
-      args.push('-f', 'image2', '-c:v', 'mjpeg', '-q:v', opts.quality >= 90 ? '2' : '4', 'pipe:1');
+      args.push('-f', 'image2', '-c:v', 'mjpeg', '-pix_fmt', 'yuvj420p', '-q:v', opts.quality >= 90 ? '2' : '4', 'pipe:1');
       execFile('ffmpeg', args, { maxBuffer: 64 * 1024 * 1024, timeout: 20000, encoding: 'buffer' }, (err, stdout) => {
         if (err) return reject(err);
         if (!stdout || !stdout.length) return reject(new Error('no image'));
