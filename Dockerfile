@@ -2,8 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# 安装 vips（sharp 缩略图）和 ffmpeg（视频缩略图）
-RUN apk add --no-cache vips ffmpeg
+# 安装 vips（sharp 缩略图）、libheif（HEIC/HEIF 解码）和 ffmpeg（视频缩略图）
+RUN apk add --no-cache vips libheif ffmpeg
 
 # 复制依赖文件并安装（含 sharp，安装失败应让构建失败而非静默退化）
 COPY package*.json ./

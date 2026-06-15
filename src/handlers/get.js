@@ -11,7 +11,7 @@ let sharp;
 try { sharp = require('sharp'); } catch(e) { sharp = null; }
 const { execFile } = require('child_process');
 
-const THUMB_EXTS = new Set(['.jpg','.jpeg','.png','.gif','.webp','.bmp','.tiff','.tif','.avif']);
+const THUMB_EXTS = new Set(['.jpg','.jpeg','.png','.gif','.webp','.bmp','.tiff','.tif','.avif','.heic','.heif']);
 const VIDEO_EXTS = new Set(['.mp4','.webm','.mkv','.mov','.m4v']);
 const THUMB_WIDTH = 300;
 const THUMB_MAX = 200; // 内存 LRU 上限
@@ -261,6 +261,24 @@ async function handleGet(req, res, url, rp, fp) {
     // 无法生成缩略图：返回占位，避免回退成下载整张原图（前端 onerror 会显示文件图标）
     res.writeHead(404); res.end();
     return;
+  }
+
+  // HEIC/HEIF 预览：浏览器不支持直接显示，服务端转 JPEG 后返回
+  const HEIC_EXTS = new Set(['.heic', '.heif']);
+  if (sharp && HEIC_EXTS.has(ext) && !url.searchParams.has('download')) {
+    const heicEtag = 'W/"heic-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
+    if (req.headers['if-none-match'] === heicEtag) { res.writeHead(304); res.end(); return; }
+    try {
+      const buf = await sharp(fp).jpeg({ quality: 92 }).toBuffer();
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': buf.length,
+        'Cache-Control': 'public, max-age=3600',
+        'ETag': heicEtag,
+      });
+      res.end(buf);
+      return;
+    } catch (e) { /* 转换失败，回退到下载 */ }
   }
 
   // Serve file (streamed; supports HTTP Range for large files / resumable downloads)

@@ -7,7 +7,7 @@ const { SIZE_CACHE_NAME } = require('./config');
 // 可预览的扩展名分类（不带点），同时注入前端使用，保持单一来源
 // video 仅保留浏览器基本能播的格式
 const PREVIEW = {
-  image: ['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','tif','avif'],
+  image: ['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','tif','avif','heic','heif'],
   video: ['mp4','webm','mkv','mov','m4v'],
   audio: ['mp3','wav','ogg','aac','flac','m4a','opus'],
   text: ['txt','md','markdown','log','csv','sql','json','js','ts','jsx','tsx','css','html','htm','xml',
@@ -40,7 +40,7 @@ function getIcon(name, isDir) {
   const ext = path.extname(name).toLowerCase();
   const map = {
     // Images
-    '.jpg':['image','green'],'.jpeg':['image','green'],'.png':['image','green'],'.gif':['image','green'],'.webp':['image','green'],'.svg':['image','green'],'.bmp':['image','green'],'.ico':['image','green'],'.tiff':['image','green'],'.tif':['image','green'],'.avif':['image','green'],
+    '.jpg':['image','green'],'.jpeg':['image','green'],'.png':['image','green'],'.gif':['image','green'],'.webp':['image','green'],'.svg':['image','green'],'.bmp':['image','green'],'.ico':['image','green'],'.tiff':['image','green'],'.tif':['image','green'],'.avif':['image','green'],'.heic':['image','green'],'.heif':['image','green'],
     // Video
     '.mp4':['movie','violet'],'.webm':['movie','violet'],'.mkv':['movie','violet'],'.avi':['movie','violet'],'.mov':['movie','violet'],'.wmv':['movie','violet'],'.flv':['movie','violet'],'.m4v':['movie','violet'],'.mts':['movie','violet'],'.3gp':['movie','violet'],
     // Audio

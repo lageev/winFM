@@ -59,6 +59,8 @@ const MIME = {
   '.ico':'image/x-icon',
   '.webp':'image/webp',
   '.avif':'image/avif',
+  '.heic':'image/heic',
+  '.heif':'image/heif',
   // Video
   '.mp4':'video/mp4',
   '.webm':'video/webm',
