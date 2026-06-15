@@ -15,6 +15,7 @@ function logout(){location.href='/__fm/logout';}
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function extOf(name){var dot=name.lastIndexOf('.');return dot>=0?name.slice(dot+1).toLowerCase():''}
+function isHeicExt(ext){return ext==='heic'||ext==='heif'}
 
 function formatSize(bytes){
   if(bytes===0) return '0 B';
@@ -668,7 +669,13 @@ async function renderPreview(name){
   content.innerHTML='';
 
   if(PV.image.indexOf(ext)>=0){
-    content.innerHTML='<img src="'+url+'" alt="'+esc(name)+'">';
+    var imageUrl=url+(isHeicExt(ext)?'?preview=1':'');
+    content.innerHTML='<img src="'+imageUrl+'" alt="'+esc(name)+'">';
+    var img=content.querySelector('img');
+    img.addEventListener('error',function(){
+      var hint=isHeicExt(ext)?'HEIC/HEIF 转码失败，无法在浏览器中预览':'该图片无法在浏览器中预览';
+      content.innerHTML='<div class="preview-fallback">'+hint+'<br><a href="'+url+'?download=1">下载文件</a></div>';
+    });
   } else if(PV.video.indexOf(ext)>=0){
     content.innerHTML='<video src="'+url+'" controls autoplay style="max-width:90%;max-height:80vh"></video>';
     var v=content.querySelector('video');

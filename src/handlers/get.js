@@ -13,6 +13,7 @@ const { execFile } = require('child_process');
 
 const THUMB_EXTS = new Set(['.jpg','.jpeg','.png','.gif','.webp','.bmp','.tiff','.tif','.avif','.heic','.heif']);
 const VIDEO_EXTS = new Set(['.mp4','.webm','.mkv','.mov','.m4v']);
+const HEIC_EXTS = new Set(['.heic', '.heif']);
 const THUMB_WIDTH = 300;
 const THUMB_MAX = 200; // 内存 LRU 上限
 const MAX_CONCURRENT = 3; // 后台生成并发上限
@@ -90,6 +91,42 @@ function releaseFfmpeg() {
   else ffmpegActive--;
 }
 
+function sharpCanReadHeic() {
+  const suffixes = sharp && sharp.format && sharp.format.heif &&
+    sharp.format.heif.input && sharp.format.heif.input.fileSuffix;
+  return Array.isArray(suffixes) && (suffixes.includes('.heic') || suffixes.includes('.heif'));
+}
+
+async function ffmpegImageToJpeg(fp, opts) {
+  opts = opts || {};
+  await acquireFfmpeg();
+  try {
+    return await new Promise((resolve, reject) => {
+      const args = ['-hide_banner', '-loglevel', 'error', '-i', fp, '-frames:v', '1'];
+      if (opts.width) args.push('-vf', 'scale=' + opts.width + ':-2');
+      args.push('-f', 'image2', '-c:v', 'mjpeg', '-q:v', opts.quality >= 90 ? '2' : '4', 'pipe:1');
+      execFile('ffmpeg', args, { maxBuffer: 64 * 1024 * 1024, timeout: 20000, encoding: 'buffer' }, (err, stdout) => {
+        if (err) return reject(err);
+        if (!stdout || !stdout.length) return reject(new Error('no image'));
+        resolve(stdout);
+      });
+    });
+  } finally {
+    releaseFfmpeg();
+  }
+}
+
+async function heicToJpeg(fp, opts) {
+  opts = opts || {};
+  const quality = opts.quality || 90;
+  if (sharpCanReadHeic()) {
+    let image = sharp(fp).rotate();
+    if (opts.width) image = image.resize({ width: opts.width, withoutEnlargement: true });
+    return image.jpeg({ quality, mozjpeg: true }).toBuffer();
+  }
+  return ffmpegImageToJpeg(fp, { width: opts.width, quality });
+}
+
 async function extractVideoFrame(fp) {
   await acquireFfmpeg();
   try {
@@ -129,10 +166,14 @@ async function generateThumb(fp, ext, mtimeMs) {
       let buf;
       const isVideo = VIDEO_EXTS.has(ext);
       if (isVideo) {
+        if (!sharp) throw new Error('sharp is required for video thumbnails');
         const frame = await extractVideoFrame(fp);
         buf = await sharp(frame).resize({ width: THUMB_WIDTH, withoutEnlargement: true })
           .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+      } else if (HEIC_EXTS.has(ext)) {
+        buf = await heicToJpeg(fp, { width: THUMB_WIDTH, quality: 80 });
       } else {
+        if (!sharp) throw new Error('sharp is required for image thumbnails');
         buf = await sharp(fp).resize({ width: THUMB_WIDTH, withoutEnlargement: true })
           .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
       }
@@ -150,12 +191,12 @@ async function generateThumb(fp, ext, mtimeMs) {
 
 // ── 目录列表后后台预生成 ──
 function queueThumb(items, dirPath) {
-  if (!sharp) return;
   for (const item of items) {
     if (item.isDir) continue;
     const ext = path.extname(item.name).toLowerCase();
     // 仅后台预生成图片；视频抽帧太重，改为前端可见时按需生成（受 ffmpeg 闸门限流）
     if (!THUMB_EXTS.has(ext)) continue;
+    if (!sharp && !HEIC_EXTS.has(ext)) continue;
     const fp = path.join(dirPath, item.name);
     const k = thumbKey(fp, item.mtime ? new Date(item.mtime).getTime() : 0);
     if (thumbCache.has(k) || inflight.has(k)) continue;
@@ -243,7 +284,8 @@ async function handleGet(req, res, url, rp, fp) {
   const ext = path.extname(fp).toLowerCase();
 
   if (url.searchParams.has('thumb')) {
-    if (sharp && (THUMB_EXTS.has(ext) || VIDEO_EXTS.has(ext))) {
+    const canGenerateThumb = (THUMB_EXTS.has(ext) && (sharp || HEIC_EXTS.has(ext))) || (VIDEO_EXTS.has(ext) && sharp);
+    if (canGenerateThumb) {
       const etag = 'W/"thumb-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
       if (req.headers['if-none-match'] === etag) { res.writeHead(304); res.end(); return; }
       try {
@@ -263,13 +305,14 @@ async function handleGet(req, res, url, rp, fp) {
     return;
   }
 
+  const download = url.searchParams.get('download');
+
   // HEIC/HEIF 预览：浏览器不支持直接显示，服务端转 JPEG 后返回
-  const HEIC_EXTS = new Set(['.heic', '.heif']);
-  if (sharp && HEIC_EXTS.has(ext) && !url.searchParams.has('download')) {
+  if (HEIC_EXTS.has(ext) && !download) {
     const heicEtag = 'W/"heic-' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
     if (req.headers['if-none-match'] === heicEtag) { res.writeHead(304); res.end(); return; }
     try {
-      const buf = await sharp(fp).jpeg({ quality: 92 }).toBuffer();
+      const buf = await heicToJpeg(fp, { quality: 92 });
       res.writeHead(200, {
         'Content-Type': 'image/jpeg',
         'Content-Length': buf.length,
@@ -278,11 +321,17 @@ async function handleGet(req, res, url, rp, fp) {
       });
       res.end(buf);
       return;
-    } catch (e) { /* 转换失败，回退到下载 */ }
+    } catch (e) {
+      if (url.searchParams.has('preview')) {
+        res.writeHead(415, { 'Content-Type': 'text/plain;charset=utf-8' });
+        res.end('HEIC/HEIF preview is unavailable');
+        return;
+      }
+      /* 转换失败，回退到下载 */
+    }
   }
 
   // Serve file (streamed; supports HTTP Range for large files / resumable downloads)
-  const download = url.searchParams.get('download');
   const etag = 'W/"' + st.size + '-' + Math.floor(st.mtimeMs) + '"';
 
   // 条件请求：内容未变化时返回 304（预览图片等不再重复传输）
