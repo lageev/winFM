@@ -43,7 +43,23 @@
       "Bash(docker push *)",
       "Bash(echo \"\")",
       "Bash(echo \"# 数据目录\")",
-      "Bash(echo \"data/\")"
+      "Bash(echo \"data/\")",
+      "Bash(git checkout *)",
+      "PowerShell(docker exec *)",
+      "Bash(npm ls *)",
+      "Bash(npm install *)",
+      "PowerShell(docker compose exec *)",
+      "PowerShell(git push *)",
+      "Bash(gh auth *)",
+      "Bash(git check-ignore *)",
+      "Bash(bash *)",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)",
+      "Bash(tasklist *)",
+      "Bash(taskkill //PID 1212 //F)",
+      "Bash(npm start *)",
+      "Bash(docker version *)",
+      "Bash(git -c credential.helper=store push origin master)"
     ]
   }
 }
