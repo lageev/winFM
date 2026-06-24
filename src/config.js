@@ -31,6 +31,12 @@ const CRED_FILE = path.join(ROOT, AUTH_FILE);
 // 显式开放模式：未配置任何凭据且 FM_OPEN=1 时跳过登录引导，保持无鉴权访问
 const OPEN_MODE = process.env.FM_OPEN === '1';
 
+// 远端 WebDAV 挂载配置文件（存于 ROOT 下，含远端凭据，列表中隐藏且禁止直接访问）
+const MOUNTS_FILE = '.fm-mounts.json';
+const MOUNTS_PATH = path.join(ROOT, MOUNTS_FILE);
+// 内置 WebDAV 服务端挂载前缀：外部客户端通过 http://host:PORT/__dav/ 挂载本机数据目录
+const DAV_PREFIX = '/__dav';
+
 // 目录大小缓存文件名（存放于 ROOT 下，列表中隐藏）
 const SIZE_CACHE_NAME = '.dirsize-cache.json';
 
@@ -192,4 +198,5 @@ module.exports = {
   ADMIN_USER, ADMIN_PASS, SESSION_SECRET, SESSION_TTL,
   ANON_ENABLED, ANON_LIMIT, ANON_IDLE,
   AUTH_FILE, CRED_FILE, OPEN_MODE,
+  MOUNTS_FILE, MOUNTS_PATH, DAV_PREFIX,
 };

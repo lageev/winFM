@@ -90,9 +90,21 @@ function formatSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+// CSRF 防护：浏览器跨站发起的 POST 会携带跨站 Origin / Sec-Fetch-Site，直接拒绝
+function isCrossSite(req) {
+  const site = req.headers['sec-fetch-site'];
+  if (site && site !== 'same-origin' && site !== 'none') return true;
+  const origin = req.headers.origin;
+  if (origin) {
+    try { return new URL(origin).host !== req.headers.host; }
+    catch (e) { return true; }
+  }
+  return false;
+}
+
 module.exports = {
   esc, isInside, safeDecodeURIComponent, safePath, pathExists,
   realPathInsideRoot, ensureSafeDirectory, safeName, safeChildPath,
   safeUploadedFilename, getSafePathParam, attachmentDisposition,
-  itemHref, formatSize,
+  itemHref, formatSize, isCrossSite,
 };

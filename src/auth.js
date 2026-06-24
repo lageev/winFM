@@ -311,6 +311,21 @@ setInterval(() => {
   for (const [ip, rec] of anon) if (now - rec.last > ANON_IDLE) anon.delete(ip);
 }, ANON_IDLE).unref();
 
+// WebDAV 服务端鉴权（HTTP Basic）：开放模式放行，否则校验管理员账户
+function checkDavAuth(req) {
+  if (!creds) return OPEN_MODE;
+  const m = /^Basic\s+(.+)$/i.exec(req.headers['authorization'] || '');
+  if (!m) return false;
+  let user = '', pass = '';
+  try {
+    const dec = Buffer.from(m[1], 'base64').toString('utf8');
+    const i = dec.indexOf(':');
+    user = i < 0 ? dec : dec.slice(0, i);
+    pass = i < 0 ? '' : dec.slice(i + 1);
+  } catch (e) { return false; }
+  return verifyCredentials(user, pass);
+}
+
 // 访问守卫：已登录放行；未登录时仅放行受限的匿名文件直链查看，其余需登录
 function guardAccess(req, res, url, fp) {
   if (isAuthed(req)) return true;
@@ -366,4 +381,7 @@ setInterval(() => {
   for (const [i, rec] of shares) if (rec.exp > 0 && now > rec.exp) shares.delete(i);
 }, 60 * 60 * 1000).unref();
 
-module.exports = { handleAuthRoutes, guardAccess, makeShareToken, consumeShare, isAuthActive };
+module.exports = {
+  handleAuthRoutes, guardAccess, makeShareToken, consumeShare, isAuthActive,
+  isAuthed, denyAuth, checkDavAuth,
+};

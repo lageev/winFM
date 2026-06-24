@@ -782,8 +782,10 @@ function shareLink(name){
   var field=document.getElementById('shareLinkField');
   var opts=document.getElementById('shareOptions');
   var genBtn=document.getElementById('shareGenBtn');
+  // 远端挂载文件不支持签名分享，直接给应用内代理直链
+  var isMount=!!(window.__FM&&window.__FM.mount);
   // 开启鉴权时自动用默认参数生成签名链接；否则直接给普通直链
-  if(window.__FM&&window.__FM.auth){
+  if(window.__FM&&window.__FM.auth&&!isMount){
     field.value='';
     if(opts)opts.style.display='';
     if(genBtn)genBtn.style.display='';
@@ -1272,6 +1274,63 @@ function addBookmark(){
   showToast('已添加 "'+name+'" 到常用目录','success');
 }
 
+// ── 侧栏：WebDAV 挂载 ──
+var mountCache=[];
+function renderMounts(){
+  var el=document.getElementById('mountList');if(!el) return;
+  fetch('/__fm/mounts').then(function(r){return r.ok?r.json():[]}).then(function(list){
+    mountCache=Array.isArray(list)?list:[];
+    var cp=location.pathname;
+    var html='';
+    for(var i=0;i<mountCache.length;i++){
+      var m=mountCache[i];
+      var prefix='/__mnt/'+encodeURIComponent(m.id);
+      var active=cp.indexOf(prefix)===0?' active':'';
+      html+='<a class="bookmark-item'+active+'" href="'+prefix+'/" title="'+esc(m.url)+'">'+
+        '<md-icon>cloud</md-icon>'+
+        '<span class="bm-label">'+esc(m.name)+'</span>'+
+        '<span class="bm-remove" onclick="event.preventDefault();event.stopPropagation();removeMount('+i+')" title="移除挂载"><md-icon>close</md-icon></span>'+
+        '</a>';
+    }
+    el.innerHTML=html||'<div style="padding:6px 10px;font-size:12px;opacity:.6">暂无挂载</div>';
+  }).catch(function(){});
+}
+function showAddMount(){
+  showDialog('mountModal');
+  setTimeout(function(){var n=document.getElementById('mountName');if(n)n.focus()},100);
+}
+async function saveMount(){
+  var name=(document.getElementById('mountName').value||'').trim();
+  var u=(document.getElementById('mountUrl').value||'').trim();
+  var user=(document.getElementById('mountUser').value||'').trim();
+  var pass=document.getElementById('mountPass').value||'';
+  if(!name||!u){showToast('请填写名称与 WebDAV 地址','info');return}
+  try{
+    var r=await fetch('/__fm/mounts',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:name,url:u,username:user,password:pass})});
+    if(r.ok){
+      closeModal('mountModal');
+      ['mountName','mountUrl','mountUser','mountPass'].forEach(function(id){var e=document.getElementById(id);if(e)e.value=''});
+      showToast('挂载已添加','success');
+      renderMounts();
+    } else showToast('添加失败：'+await r.text(),'info');
+  }catch(e){showToast('添加失败','info')}
+}
+async function removeMount(idx){
+  var m=mountCache[idx];if(!m) return;
+  var okay=await confirmDialog('确定移除挂载 "'+m.name+'" 吗？（仅移除挂载配置，不影响远端数据）');
+  if(!okay) return;
+  try{
+    var r=await fetch('/__fm/mounts?op=delete',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:m.id})});
+    if(r.ok){
+      showToast('已移除挂载','success');
+      if(location.pathname.indexOf('/__mnt/'+encodeURIComponent(m.id))===0) location.href='/';
+      else renderMounts();
+    } else showToast('移除失败','info');
+  }catch(e){showToast('移除失败','info')}
+}
+
 // ── 侧栏：目录树 ──
 var treeCache={};
 function encodePath(p){
@@ -1412,6 +1471,7 @@ function init(){
   applyViewIcon();
   loadDirSize();
   try{renderBookmarks()}catch(e){}
+  try{renderMounts()}catch(e){}
   try{initDirTree()}catch(e){}
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);

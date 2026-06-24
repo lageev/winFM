@@ -20,6 +20,7 @@ A lightweight web-based file manager powered by Docker, implemented in Node.js w
 - ⬇️ Single file / Batch download (direct transfer per file, no archiving)
 - 🔗 Share direct link (generate direct file URLs for easy sharing)
 - 📊 Async directory size calculation (real-time display of directory size, file and folder count)
+- 🌐 WebDAV support (built-in WebDAV server that other clients can mount; also mount remote WebDAV servers and browse/manage them in the UI)
 
 ### 👁️ File Preview
 - 🖼️ Image preview (PNG, JPG, GIF, SVG, WebP)
@@ -204,6 +205,30 @@ When authentication is enabled, logged-in admins can generate signed share links
 - Expiry (hours): 0 = permanent, link expires after the timeout.
 
 Links look like `/__fm/s?t=<signed-token>`, accessible without login; token is HMAC-signed and tamper-proof, expiry is guaranteed by the signature and survives server restarts (view count is in-memory and resets on restart).
+
+### WebDAV
+
+winFM supports WebDAV in both directions:
+
+**1. As a WebDAV server (let other clients mount this data directory)**
+
+The server endpoint is fixed at `/__dav/`, exposing the data directory over WebDAV. Client address looks like:
+
+```
+http://your-host:8888/__dav/
+```
+
+- Auth: reuses the admin account via HTTP Basic auth (same username/password as login). No auth in `FM_OPEN=1` open mode.
+- Supported methods: `OPTIONS / PROPFIND / GET / HEAD / PUT / DELETE / MKCOL / COPY / MOVE / LOCK / UNLOCK / PROPPATCH`, covering common clients (Windows mapped network drive, macOS Finder "Connect to Server", RaiDrive, mobile file apps, etc.).
+- Security: internal config files (`.fm-auth.json`, `.fm-mounts.json`, etc.) are hidden from WebDAV listings and cannot be accessed directly.
+
+**2. As a WebDAV client (mount other WebDAV servers)**
+
+In the sidebar "WebDAV Mounts", click "Add mount", fill in a name, the remote address (`http(s)://...`), and optional username/password. You can then browse, upload, download, create, rename and delete remote files right inside the winFM UI, just like a local directory.
+
+- Mount config is persisted in `.fm-mounts.json` in the data directory (contains remote credentials, file mode `0600`, hidden and not accessible).
+- Inside a mount, the breadcrumb is rooted at the mount; move/copy currently works only within the same mount (cross-storage move/copy between local and remote is not supported yet).
+- Mount management and browsing require admin login.
 
 ### Local Configuration (Not synced to remote)
 

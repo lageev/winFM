@@ -9,11 +9,13 @@ const IMAGE_EXTS = new Set(PREVIEW.image);
 const THUMB_EXTS = new Set([].concat(PREVIEW.image, PREVIEW.video));
 const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23C96442' d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E";
 
-function getHTML(list, rp, sortField, sortDir, groupDirs) {
+function getHTML(list, rp, sortField, sortDir, groupDirs, mount) {
   sortField = sortField || 'name';
   sortDir = sortDir || 'asc';
   groupDirs = groupDirs !== false;
   const AUTH_ENABLED = isAuthActive();
+  // 远端 WebDAV 挂载浏览：面包屑以挂载点为根，链接挂上 /__mnt/<id> 前缀
+  const base = mount ? mount.prefix : '';
 
   // 非默认排序时，目录链接携带排序参数，导航后保持排序状态
   const qp = [];
@@ -37,17 +39,18 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
   }
 
   const breadcrumbs = rp.split('/').filter(Boolean);
-  let breadcrumbHtml = '<a href="/' + qs + '" class="breadcrumb-item"><md-icon>home</md-icon> 根目录</a>';
+  const rootLabel = mount ? '<md-icon>cloud</md-icon> ' + esc(mount.name) : '<md-icon>home</md-icon> 根目录';
+  let breadcrumbHtml = '<a href="' + base + '/' + qs + '" class="breadcrumb-item">' + rootLabel + '</a>';
   const cumParts = [];
   for (const b of breadcrumbs) {
     cumParts.push(b);
-    const href = '/' + cumParts.map(encodeURIComponent).join('/') + '/' + qs;
+    const href = base + '/' + cumParts.map(encodeURIComponent).join('/') + '/' + qs;
     breadcrumbHtml += '<span class="breadcrumb-sep">/</span><a href="' + href + '" class="breadcrumb-item">' + esc(b) + '</a>';
   }
 
   const dirCount = list.filter(i => i.isDir).length;
   const fileCount = list.length - dirCount;
-  const currentLabel = breadcrumbs.length ? breadcrumbs[breadcrumbs.length - 1] : '根目录';
+  const currentLabel = breadcrumbs.length ? breadcrumbs[breadcrumbs.length - 1] : (mount ? mount.name : '根目录');
   const statsHtml = '<div class="header-stats">' +
     '<span class="stat-pill"><b>' + dirCount + '</b> 文件夹</span>' +
     '<span class="stat-pill"><b>' + fileCount + '</b> 文件</span>' +
@@ -98,7 +101,7 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
 <link rel="icon" href="${FAVICON}">
 <script>try{var t=localStorage.getItem('fm_theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <script>try{if(localStorage.getItem('fm_view')==='grid')document.documentElement.dataset.view='grid'}catch(e){}</script>
-<script>window.__FM=${JSON.stringify({ preview: PREVIEW, auth: AUTH_ENABLED })}</script>
+<script>window.__FM=${JSON.stringify({ preview: PREVIEW, auth: AUTH_ENABLED, mount: !!mount })}</script>
 <link rel="stylesheet" href="/__fm/app.css?v=${assetVersion('app.css')}">
 <script type="module" src="/__fm/material-web.js?v=${assetVersion('material-web.js')}"></script>
 <script src="/__fm/app.js?v=${assetVersion('app.js')}" defer></script>
@@ -135,6 +138,12 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
       <div class="sidebar-title"><md-icon>bookmark</md-icon> 常用目录</div>
       <div class="bookmark-list" id="bookmarkList"></div>
       <div class="bookmark-add" onclick="addBookmark()" title="将当前目录添加到常用"><md-icon>add</md-icon>添加当前目录</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-title"><md-icon>cloud</md-icon> WebDAV 挂载</div>
+      <div class="bookmark-list" id="mountList"></div>
+      <div class="bookmark-add" onclick="showAddMount()" title="挂载远端 WebDAV 服务器"><md-icon>add</md-icon>添加挂载</div>
     </div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section sidebar-tree-section">
@@ -236,6 +245,22 @@ function getHTML(list, rp, sortField, sortDir, groupDirs) {
     <md-filled-tonal-button type="button" id="shareGenBtn" onclick="generateShareLink()"><md-icon slot="icon">link</md-icon>生成链接</md-filled-tonal-button>
     <md-outlined-button type="button" id="shareOpenBtn" onclick="openShareLink()"><md-icon slot="icon">open_in_new</md-icon>打开</md-outlined-button>
     <md-filled-button type="button" id="shareCopyBtn" onclick="copyShareLink()"><md-icon slot="icon">content_copy</md-icon><span class="btn-label">复制链接</span></md-filled-button>
+  </div>
+</md-dialog>
+
+<!-- Add WebDAV Mount Dialog -->
+<md-dialog id="mountModal" class="material-dialog">
+  <div slot="headline" class="dialog-headline"><md-icon>cloud</md-icon><span>添加 WebDAV 挂载</span></div>
+  <div slot="content" class="dialog-content">
+    <md-outlined-text-field id="mountName" label="名称" placeholder="例如 我的网盘"></md-outlined-text-field>
+    <md-outlined-text-field id="mountUrl" label="WebDAV 地址" placeholder="https://example.com/dav/"></md-outlined-text-field>
+    <md-outlined-text-field id="mountUser" label="用户名（可选）" autocomplete="off"></md-outlined-text-field>
+    <md-outlined-text-field id="mountPass" label="密码（可选）" type="password" autocomplete="off"></md-outlined-text-field>
+    <div class="dialog-support">挂载后可在侧栏进入，像本地目录一样浏览与管理远端文件。</div>
+  </div>
+  <div slot="actions" class="modal-actions">
+    <md-text-button type="button" onclick="closeModal('mountModal')">取消</md-text-button>
+    <md-filled-button type="button" onclick="saveMount()">保存</md-filled-button>
   </div>
 </md-dialog>
 
