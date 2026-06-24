@@ -3,6 +3,7 @@
 基于 Docker 的轻量级 Web 文件管理器，Node.js 实现，极简依赖。
 
 📦 **Docker Hub 镜像**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
+🔗 **源码**: [GitHub](https://github.com/lageev/winFM) | [Gitee](https://gitee.com/fringhuang/win-fm)
 
 🌐 **语言**: [English](README.en.md) | [中文](README.md)
 
@@ -101,6 +102,8 @@ docker compose up -d
 ```bash
 # 克隆仓库
 git clone https://github.com/lageev/winFM.git
+# 或 Gitee
+git clone https://gitee.com/fringhuang/win-fm.git
 cd winFM
 
 # 构建并启动

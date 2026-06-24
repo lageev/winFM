@@ -3,6 +3,7 @@
 A lightweight web-based file manager powered by Docker, implemented in Node.js with minimal dependencies.
 
 📦 **Docker Hub Image**: [lagee/winfm](https://hub.docker.com/r/lagee/winfm)
+🔗 **Source**: [GitHub](https://github.com/lageev/winFM) | [Gitee](https://gitee.com/fringhuang/win-fm)
 
 🌐 **Language**: [English](README.en.md) | [中文](README.md)
 
@@ -101,6 +102,8 @@ docker compose up -d
 ```bash
 # Clone the repository
 git clone https://github.com/lageev/winFM.git
+# or Gitee
+git clone https://gitee.com/fringhuang/win-fm.git
 cd winFM
 
 # Build and start
